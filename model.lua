@@ -7,7 +7,7 @@ function build_model(libs)
     --Encoder/Embedding
     --Input dims are 28x28          NOTE: change dims as inputs are 32x32 -- Need to do this 
     encoder = nn.Sequential()
-    encoder:add(nn.SpatialConvolution(1, 20, 5, 5)) -- 1 input image channel, 20 output channels, 5x5 convolution kernel (each feature map is 28x28)
+    encoder:add(nn.SpatialConvolution(3, 20, 5, 5)) -- 1 input image channel, 20 output channels, 5x5 convolution kernel (each feature map is 28x28)
     encoder:add(nn.ReLU())
 --    encoder:add(nn.SpatialMaxPooling(2, 2, 2, 2)) -- max pooling with kernal 2x2 and a stride of 2 in each direction (feature maps are 14x14)
     encoder:add(nn.SpatialConvolution(20, 50, 5, 5)) -- 20 input feature maps and output 50, 5x5 convolution kernel (feature maps are 10x10) 

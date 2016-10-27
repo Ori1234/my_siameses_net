@@ -1,5 +1,5 @@
 --set device  =2 somehow switch to 0? THERE'S A MAPPING BETWEEN NUMBERS AND GPUS not strait forward
---th run.lua -gpu 100 
+--th train.lua -gpu 100 
 require 'torch';
 require 'nn';
 require 'optim';
@@ -212,7 +212,7 @@ for i=1488,1514 do
 --local total_num_of_letters=1514-1488+1
 --print('excluded '..(total_num_of_letters-#letters)*1.0/total_num_of_letters)
 require 'help_funcs.lua'
-data_folder='synthetic_data/train/'
+data_folder='../../DATA/synthetic_RGB'
 print('data folder '..data_folder)
 preper_data_syntetic(data_folder)
 train(letters)
