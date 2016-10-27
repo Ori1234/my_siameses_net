@@ -1,5 +1,4 @@
---set device  =2 somehow switch to 0? THERE'S A MAPPING BETWEEN NUMBERS AND GPUS not strait forward
---th train.lua -gpu 100 
+--th train_synthetic.lua 100 ../../DATA/synthetic_RGB
 require 'torch';
 require 'nn';
 require 'optim';
@@ -14,15 +13,16 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Arguments")
 cmd:argument("-max_epochs", "maximum epochs")
+cmd:argument("-data_folder", "/home/wolf1/oriterne/DATA/synthetic_RGB")
 cmd:text("Options")
 cmd:option("-batch_size", 50, "batch size")
 cmd:option("-learning_rate", 0.01, "learning_rate")
 cmd:option("-momentum", 0.9, "momentum")
-cmd:option("-snapshot_dir", "./snapshot_train_synthetic/", "snapshot directory")
+cmd:option("-snapshot_dir", "OUTPUTS/snapshot_train_synthetic/", "snapshot directory")
 cmd:option("-snapshot_epoch", 5, "snapshot after how many iterations?")
 cmd:option("-gpu", true, "use gpu")
 cmd:option("-weights", "", "pretrained model to begin training from")
-cmd:option("-log", "output log file")
+cmd:option("-log", "OUTPUTS/output log file")
 
 params = cmd:parse(arg)
 
@@ -212,7 +212,7 @@ for i=1488,1514 do
 --local total_num_of_letters=1514-1488+1
 --print('excluded '..(total_num_of_letters-#letters)*1.0/total_num_of_letters)
 require 'help_funcs.lua'
-data_folder='../../DATA/synthetic_RGB'
+data_folder=params.data_folder
 print('data folder '..data_folder)
 preper_data_syntetic(data_folder)
 train(letters)
