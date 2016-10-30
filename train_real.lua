@@ -4,7 +4,7 @@ require 'torch';
 require 'nn';
 require 'optim';
 require 'image';
-require 'dataset';
+--require 'dataset';
 require 'model';
 	-----------------------------------------------------------------------------
 math.randomseed(os.time())

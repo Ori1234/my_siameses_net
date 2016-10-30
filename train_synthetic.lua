@@ -3,7 +3,7 @@ require 'torch';
 require 'nn';
 require 'optim';
 require 'image';
-require 'dataset';
+--require 'dataset';
 require 'model';
 	-----------------------------------------------------------------------------
 math.randomseed(os.time())
@@ -44,7 +44,7 @@ if params.gpu then
 	libs['SpatialConvolution'] = cudnn.SpatialConvolution
 	libs['SpatialMaxPooling'] = cudnn.SpatialMaxPooling
 	libs['ReLU'] = cudnn.ReLU
-	torch.setdefaulttensortype('torch.CudaTensor')
+	--torch.setdefaulttensortype('torch.CudaTensor')
 	run_on_cuda = true
 else
 	libs['SpatialConvolution'] = nn.SpatialConvolution
@@ -66,6 +66,7 @@ end
 
 if run_on_cuda then
 	model = model:cuda()
+	criterion=criterion:cuda()
 end
 
 
@@ -118,6 +119,7 @@ function train_one_epoch(letters)
 			local letter=letters[math.random(#letters)]
 			local same=(math.random(1, 10) > 5)
 			input=pair_syntetic(letter,same)
+			input=input:cuda()
 			local label = same and 1 or -1
 			--print(input:size())
 			--print(inputs:size())

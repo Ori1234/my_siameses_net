@@ -8,9 +8,9 @@ import 'image'
 --image_path='/home/wolf1/oriterne/fonts/results_scaled_preserve_ratio/results_scaled_preserve_ratio/'
 image_path='./'
 function im_transform(fileName,noise,rotate,translate)
-	if cudnn then
-		torch.setdefaulttensortype('torch.FloatTensor')
-	end
+--	if cudnn then
+--		torch.setdefaulttensortype('torch.FloatTensor')
+--	end
 	local im
 	local noise=math.random(0,noise)
 	local translate=translate or {math.random(-2,2),math.random(-2,2)}
@@ -36,10 +36,10 @@ function im_transform(fileName,noise,rotate,translate)
 	im=image.rotate(im,rotate)
 	im:add(-1):div(-1)	
 	--image.display(im)
-	if cudnn then
-		torch.setdefaulttensortype('torch.CudaTensor')
-		im=im:cuda()
-	end
+--	if cudnn then
+--		torch.setdefaulttensortype('torch.CudaTensor')
+--		im=im:cuda()
+--	end
 	return im
 end
 
