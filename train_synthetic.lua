@@ -77,6 +77,7 @@ parameters, grad_parameters = model:getParameters();
 
 function train(letters)
 	local saved_criterion = false;
+	print(type(params.max_epochs))
 	for i = 1, params.max_epochs do
 		--add random shuffling here
 		train_one_epoch(letters)

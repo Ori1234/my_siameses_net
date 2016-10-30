@@ -1,5 +1,5 @@
---set device  =2 somehow switch to 0? THERE'S A MAPPING BETWEEN NUMBERS AND GPUS not strait forward
---th run.lua -gpu 100 
+--no pretrain: th train_real.lua 100 ../../DATA/real_data_RGB/
+--pretrain : th train_real.lua 100 ../../DATA/real_data_RGB/ -learning_rate 0.001 -weights OUTPUTS/<snapshot_train_synthetic>
 require 'torch';
 require 'nn';
 require 'optim';
@@ -14,15 +14,16 @@ cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Arguments")
 cmd:argument("-max_epochs", "maximum epochs")
+cmd:argument("-data_folder", "/home/wolf1/oriterne/DATA/real_data_RGB")
 cmd:text("Options")
 cmd:option("-batch_size", 50, "batch size")
 cmd:option("-learning_rate", 0.01, "learning_rate")
 cmd:option("-momentum", 0.9, "momentum")
-cmd:option("-snapshot_dir", "./snapshot_train_on_real_leave_out_some/", "snapshot directory")
+cmd:option("-snapshot_dir", "OUTPUTS/snapshot_train_real/", "snapshot directory")
 cmd:option("-snapshot_epoch", 5, "snapshot after how many iterations?")
-cmd:option("-gpu", false, "use gpu")
+cmd:option("-gpu", true, "use gpu")
 cmd:option("-weights", "", "pretrained model to begin training from")
-cmd:option("-log", "output log file")
+cmd:option("-log", "OUTPUTS/output log file train real")
 
 params = cmd:parse(arg)
 
@@ -111,22 +112,19 @@ function train_one_epoch(letters)
 	local errors=0
 	local lr=params.learning_rate
 	for mini_batch_start = 1,5000, batch_size do --for each mini-batch
-		local inputs = {}
-		local labels = {}
+		local inputs = torch.CudaTensor(batch_size,2,3,64,64)
+		local labels = torch.CudaTensor(batch_size)
 		--create a mini_batch
 		local mini_batch_stop=math.min(mini_batch_start + batch_size - 1, 5000)
 
-		for i = mini_batch_start, mini_batch_stop do 
-			--    local input = dataset[i][1]:clone() -- the tensor containing two images     
+		for i=1,batch_size do 
 			local same=(math.random(1, 10) > 5)
-			letter,folder1,folder2=rand_staff_multi(same)
-
-			--print(letter)
-			input=pair_real(letter,folder1,folder2)
+			local letter,folder1,folder2=rand_staff_multi(same)
+			local input=pair_real(letter,folder1,folder2)
 			input=input:cuda()
 			local label = same and 1 or -1
-			table.insert(inputs, input)
-			table.insert(labels, label)
+			inputs[i]=input	
+			labels[i]=label
 		end
 		--create a closure to evaluate df/dX where x are the model parameters at a given point
 		--and df/dx is the gradient of the loss wrt to thes parameters
@@ -140,19 +138,13 @@ function train_one_epoch(letters)
 
 			local avg_error = 0 -- the average error of all criterion outs
 			--evaluate for complete mini_batch
-			for i = 1, #inputs do
-				local output = model:forward(inputs[i])
-				local err = criterion:forward(output, labels[i])
-				avg_error = avg_error + err
-				--estimate dLoss/dW
-				local dloss_dout = criterion:backward(output, labels[i])
-				model:backward(inputs[i], dloss_dout)
-			end
-			grad_parameters:div(#inputs);
-			avg_error = avg_error / #inputs;
-			--print(avg_error)
-			errors=errors+avg_error
-			return avg_error, grad_parameters
+			local outputs = model:forward(inputs)
+			local err = criterion:forward(outputs, labels)
+			--estimate dLoss/dW
+			local dloss_dout = criterion:backward(outputs, labels)
+			model:backward(inputs, dloss_dout)
+			errors=errors+err		
+			return err, grad_parameters
 		end
 		
 		if epoch > 50 then
@@ -199,7 +191,7 @@ for i=1488,1514 do
 --local total_num_of_letters=1514-1488+1
 --print('excluded '..(total_num_of_letters-#letters)*1.0/total_num_of_letters)
 require 'help_funcs.lua'
-data_folder='real_data/train/'
+data_folder=params.data_folder
 print('data folder '..data_folder)
 preper_data_real_multi(data_folder)
 train(letters)
