@@ -34,7 +34,7 @@ function build_model(libs)
 
     --The siamese model (inputs will be Tensors of shape (2, channel, height, width))
     model = nn.Sequential()
-    model:add(nn.SplitTable(1)) -- split input tensor along the rows (1st dimension) to table for input to ParallelTable
+    model:add(nn.SplitTable(2)) -- split input tensor along the rows (1st dimension) to table for input to ParallelTable
     model:add(siamese_encoder)
     model:add(nn.PairwiseDistance(2)) --L2 pariwise distance
 

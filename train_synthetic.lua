@@ -100,22 +100,6 @@ function train(letters)
 end
 	
 
---require 'my_utils1.lua'
---function choose_random_font(letter)
---	return F1[letter][math.random(#F1[letter])]
---end
-
---F1={}
---function preper_data(dir)
---	for letter=1488,1514 do
---		F1[letter]={}
---		for f in io.popen("ls "..dir.."/"..letter.."*.png"):lines() do
---		table.insert(F1[letter],f)
---		end
---	end
---end
-
-
 
 function train_one_epoch(letters)
 	local time = sys.clock()
@@ -123,27 +107,26 @@ function train_one_epoch(letters)
 	local errors=0
 	local lr=params.learning_rate
 	for mini_batch_start = 1,5000, batch_size do --for each mini-batch
-		local inputs = {}
-		local labels = {}
+		local inputs = torch.CudaTensor(batch_size,2,3,64,64)
+		local labels = torch.CudaTensor(batch_size)
 		--create a mini_batch
 		local mini_batch_stop=math.min(mini_batch_start + batch_size - 1, 5000)
 
-		for i = mini_batch_start, mini_batch_stop do 
+		for i = 1, batch_size do 
 			--    local input = dataset[i][1]:clone() -- the tensor containing two images     
-			--    local letter=math.random(1488,1514)
 			local letter=letters[math.random(#letters)]
-			--    1.1) random same/not same font
 			local same=(math.random(1, 10) > 5)
-			---  1.1.1) choose font/2 fonts randomly a (and b) in random from font_list
-			--print(letter)
 			input=pair_syntetic(letter,same)
 			local label = same and 1 or -1
-			table.insert(inputs, input)
-			table.insert(labels, label)
+			--print(input:size())
+			--print(inputs:size())
+			inputs[i]=input	
+			labels[i]=label
 		end
+--		print(inputs)
+		--print(labels)
 		--create a closure to evaluate df/dX where x are the model parameters at a given point
 		--and df/dx is the gradient of the loss wrt to thes parameters
-
 		local func_eval = function(x)
 			--update the model parameters (copy x in to parameters)
 			if x ~= parameters then
@@ -153,19 +136,17 @@ function train_one_epoch(letters)
 
 			local avg_error = 0 -- the average error of all criterion outs
 			--evaluate for complete mini_batch
-			for i = 1, #inputs do
-				local output = model:forward(inputs[i])
-				local err = criterion:forward(output, labels[i])
-				avg_error = avg_error + err
-				--estimate dLoss/dW
-				local dloss_dout = criterion:backward(output, labels[i])
-				model:backward(inputs[i], dloss_dout)
-			end
-			grad_parameters:div(#inputs);
-			avg_error = avg_error / #inputs;
-			--print(avg_error)
-			errors=errors+avg_error
-			return avg_error, grad_parameters
+			local outputs = model:forward(inputs)
+			--print(outputs)
+			local err = criterion:forward(outputs, labels)
+			--estimate dLoss/dW
+			--print(err)
+			local dloss_dout = criterion:backward(outputs, labels)
+			model:backward(inputs, dloss_dout)
+			--grad_parameters:div(#inputs);
+			--avg_error = avg_error / #inputs;
+			errors=errors+err
+			return err, grad_parameters
 		end
 		
 		if epoch > 50 then
@@ -215,5 +196,6 @@ require 'help_funcs.lua'
 data_folder=params.data_folder
 print('data folder '..data_folder)
 preper_data_syntetic(data_folder)
+print('data is prepered')
 train(letters)
 
