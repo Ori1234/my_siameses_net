@@ -1,29 +1,29 @@
---no pretrain: th train_real.lua 100 ../../DATA/real_data_RGB/train/
---pretrain : th train_real.lua 100 ../../DATA/real_data_RGB/train/ -learning_rate 0.001 -weights OUTPUTS/<snapshot_train_synthetic>
+--th train_synthetic.lua 100 ../../DATA/synthetic_RGB
 require 'torch';
 require 'nn';
 require 'optim';
 require 'image';
---require 'dataset';
+require 'dataset';
 require 'model';
 	-----------------------------------------------------------------------------
-math.randomseed(os.time())
+--math.randomseed(os.time())
+torch.manualSeed(123)
 	--------------------- parse command line options ----------------------------
 	-----------------------------------------------------------------------------
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Arguments")
 cmd:argument("-max_epochs", "maximum epochs")
-cmd:argument("-data_folder", "/home/wolf1/oriterne/DATA/real_data_RGB")
+cmd:argument("-data_folder", "/home/wolf1/oriterne/DATA/synthetic_RGB")
 cmd:text("Options")
 cmd:option("-batch_size", 50, "batch size")
 cmd:option("-learning_rate", 0.01, "learning_rate")
 cmd:option("-momentum", 0.9, "momentum")
-cmd:option("-snapshot_dir", "OUTPUTS/snapshot_train_real/", "snapshot directory")
+cmd:option("-snapshot_dir", "OUTPUTS/snapshot_train_synthetic/", "snapshot directory")
 cmd:option("-snapshot_epoch", 5, "snapshot after how many iterations?")
 cmd:option("-gpu", true, "use gpu")
 cmd:option("-weights", "", "pretrained model to begin training from")
-cmd:option("-log", "OUTPUTS/output log file train real")
+cmd:option("-log", "OUTPUTS/output log file")
 
 params = cmd:parse(arg)
 
@@ -45,7 +45,7 @@ if params.gpu then
 	libs['SpatialConvolution'] = cudnn.SpatialConvolution
 	libs['SpatialMaxPooling'] = cudnn.SpatialMaxPooling
 	libs['ReLU'] = cudnn.ReLU
-	--torch.setdefaulttensortype('torch.CudaTensor')   see https://github.com/torch/image/issues/24
+	torch.setdefaulttensortype('torch.CudaTensor')
 	run_on_cuda = true
 else
 	libs['SpatialConvolution'] = nn.SpatialConvolution
@@ -60,9 +60,6 @@ batch_size = params.batch_size
 
 if params.weights ~= "" then
 	print("loading model from pretained weights in file "..params.weights)
-	
-	margin = 1
- 	criterion = nn.HingeEmbeddingCriterion(margin)	
 	model = torch.load(params.weights)
 else
 	model = build_model(libs)
@@ -70,7 +67,6 @@ end
 
 if run_on_cuda then
 	model = model:cuda()
-	criterion=criterion:cuda()
 end
 
 
@@ -105,26 +101,46 @@ function train(letters)
 end
 	
 
+--require 'my_utils1.lua'
+--function choose_random_font(letter)
+--	return F1[letter][math.random(#F1[letter])]
+--end
+
+--F1={}
+--function preper_data(dir)
+--	for letter=1488,1514 do
+--		F1[letter]={}
+--		for f in io.popen("ls "..dir.."/"..letter.."*.png"):lines() do
+--		table.insert(F1[letter],f)
+--		end
+--	end
+--end
+
+
 
 function train_one_epoch(letters)
 	local time = sys.clock()
 	--train one epoch of the dataset
 	local errors=0
 	local lr=params.learning_rate
-	for mini_batch_start = 1,5000, batch_size do --for each mini-batch
-		local inputs = torch.CudaTensor(batch_size,2,3,64,64)
-		local labels = torch.CudaTensor(batch_size)
+	for mini_batch_start = 1,50, batch_size do --for each mini-batch
+		local inputs = {}
+		local labels = {}
 		--create a mini_batch
 		local mini_batch_stop=math.min(mini_batch_start + batch_size - 1, 5000)
 
-		for i=1,batch_size do 
+		for i = mini_batch_start, mini_batch_stop do 
+			--    local input = dataset[i][1]:clone() -- the tensor containing two images     
+			--    local letter=math.random(1488,1514)
+			local letter=letters[math.random(#letters)]
+			--    1.1) random same/not same font
 			local same=(math.random(1, 10) > 5)
-			local letter,folder1,folder2=rand_staff_multi(same)
-			local input=pair_real(letter,folder1,folder2)
-			input=input:cuda()
+			---  1.1.1) choose font/2 fonts randomly a (and b) in random from font_list
+			--print(letter)
+			input=pair_syntetic(letter,same)
 			local label = same and 1 or -1
-			inputs[i]=input	
-			labels[i]=label
+			table.insert(inputs, input)
+			table.insert(labels, label)
 		end
 		--create a closure to evaluate df/dX where x are the model parameters at a given point
 		--and df/dx is the gradient of the loss wrt to thes parameters
@@ -136,25 +152,31 @@ function train_one_epoch(letters)
 			end
 			grad_parameters:zero() --reset gradients
 
-			local avg_error = 1 -- the average error of all criterion outs
+			local avg_error = 0 -- the average error of all criterion outs
 			--evaluate for complete mini_batch
-			local outputs = model:forward(inputs)
-			local err = criterion:forward(outputs, labels)
-			--estimate dLoss/dW
-			local dloss_dout = criterion:backward(outputs, labels)
-			model:backward(inputs, dloss_dout)
-			errors=errors+err		
-			return err, grad_parameters
+			for i = 1, #inputs do
+				local output = model:forward(inputs[i])
+				local err = criterion:forward(output, labels[i])
+				avg_error = avg_error + err
+				--estimate dLoss/dW
+				local dloss_dout = criterion:backward(output, labels[i])
+				model:backward(inputs[i], dloss_dout)
+			end
+			grad_parameters:div(#inputs);
+			avg_error = avg_error / #inputs;
+			--print(avg_error)
+			errors=errors+avg_error
+			return avg_error, grad_parameters
 		end
 		
 		if epoch > 50 then
 			lr = params.learning_rate/10	
 		end
 		if epoch > 100 then
-			lr = params.learning_rate/100
+			lr = params.learning_rate/10
 		end
 		if epoch > 150 then
-			lr = params.learning_rate/1000
+			lr = params.learning_rate/10
 		end
 		config = {learningRate = lr , momentum = params.momentum}
 		--This function updates the global parameters variable (which is a view on the models parameters)
@@ -193,6 +215,6 @@ for i=1488,1514 do
 require 'help_funcs.lua'
 data_folder=params.data_folder
 print('data folder '..data_folder)
-preper_data_real_multi(data_folder)
+preper_data_syntetic(data_folder)
 train(letters)
 

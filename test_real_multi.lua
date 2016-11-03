@@ -1,3 +1,4 @@
+--th test_real_multi.lua 200 'OUTPUTS/snapshot_train_real/snapshot_epoch_5.net' '../../DATA/real_data_RGB/test/'
 require 'nn'
 require 'cunn'
 -- th -i test_real_multi.lua <num_of_tests><saved model><data folder>

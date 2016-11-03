@@ -1,5 +1,5 @@
---no pretrain: th train_real.lua 100 ../../DATA/real_data_RGB/
---pretrain : th train_real.lua 100 ../../DATA/real_data_RGB/ -learning_rate 0.001 -weights OUTPUTS/<snapshot_train_synthetic>
+--no pretrain: th train_real_multi_classifier.lua 100 ../../../DATA/real_data_RGB/train/
+--pretrain : 
 require 'torch';
 require 'nn';
 require 'optim';

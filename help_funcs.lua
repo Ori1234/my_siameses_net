@@ -14,10 +14,34 @@ function preper_data_syntetic(dir)
 			table.insert(F1[letter],f)
 		end
 	end
-----	print(F1)
+	print(count_data(F1))
 	return F1
 end
 
+
+function count_data(tbl)
+	local sum=0
+	for k,v in pairs(tbl) do
+		if #v>0 then
+			print('letter:'..k,'count:'..#v)
+			sum=sum+#v
+		end
+	end
+	return sum
+end
+
+
+function count_data_multi(tbl)
+	local sum=0
+	print('DATA COUNT')
+	for k,v in pairs(tbl) do
+		print('###IN SCROLL: '..k)
+		local count=count_data(v)
+		print('------TOTAL: '..count)
+		sum=sum+count
+	end
+	print('TOTAL: '..sum)	
+end
 
 
 --slice table
@@ -36,24 +60,24 @@ letters={
 
 
 
-function preper_data_real(F1_path,F2_path)
-F1={}
-F2={}
-print('\nERRORS HERE INDICATE THAT THERE"S NO TEST SAMPLES FOR THIS LETTER IN THE FOLDER: ')
-for i=1,#letters do
-        l=letters[i]
-        F1[l]={}
-	iter= io.popen("ls  "..F1_path..l.."*")
-        for f in iter:lines()do
-                table.insert(F1[l],f)
-        end
-        F2[l]={}
-        for f in io.popen("ls  "..F2_path..l.."*"):lines() do
-                table.insert(F2[l],f)
-        end
-end
-	return F1,F2
-end
+--function preper_data_real(F1_path,F2_path)
+--F1={}
+--F2={}
+--print('\nERRORS HERE INDICATE THAT THERE"S NO TEST SAMPLES FOR THIS LETTER IN THE FOLDER: ')
+--for i=1,#letters do
+--        l=letters[i]
+--        F1[l]={}
+--	iter= io.popen("ls  "..F1_path..l.."*")
+--        for f in iter:lines()do
+--                table.insert(F1[l],f)
+--        end
+--        F2[l]={}
+--        for f in io.popen("ls  "..F2_path..l.."*"):lines() do
+--                table.insert(F2[l],f)
+--        end
+--end
+--	return F1,F2
+--end
 
 function preper_data_real_multi(data_main_folder)
 	F1={}
@@ -67,7 +91,7 @@ function preper_data_real_multi(data_main_folder)
 			end
 		end
 	end
-	--print(F1)
+	count_data_multi(F1)
 end
 
 function pair_syntetic(letter,same)
@@ -163,8 +187,8 @@ function rand_staff_multi(same)
         	end
         end
 	--print(file_name..l)
-	--print(..s1)
-	--print(..s2)
+	--print('help_funcs.lua '..s1)
+	--print('help_funcs.lua '..s2)
 	--print(..'\n')
 	return l,F1[s1],F1[s2]
 end

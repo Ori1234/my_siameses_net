@@ -1,3 +1,4 @@
+--test_real_multi_classifier.lua 200 'OUTPUTS/snapshot_train_real/snapshot_epoch_10.net' '../../../DATA/real_data_RGB/test/'
 require 'nn'
 require 'cunn'
 -- th -i test_real_multi.lua <num_of_tests><saved model><data folder>
@@ -7,7 +8,7 @@ math.randomseed(os.time())
 require '../help_funcs.lua'
 local num_of_test=arg[1] or 100 
 saved_model=arg[2] or 'OUTPUTS/snapshot_train_real/snapshot_epoch_10.net'
-local data_folder=arg[3] or '../../../DATA/real_data_RGB/'
+local data_folder=arg[3] or '../../../DATA/real_data_RGB/test/'
 
 
 
@@ -63,19 +64,19 @@ for i = 1, num_of_test do
 	local same=(math.random(1, 10) > 5)
 	letter,folder1,folder2=rand_staff_multi(same)
 	input=pair_real(letter,folder1,folder2)
-	print(same)
+	--print(same)
 	--im1=input[1]
 	--im2=input[2]
 	local output=model:forward(input:cuda())
-	print(output)
+	--print(output)
 	
 	local a=model:get(9).output:clone()
-	print(a:size())
+	--print(a:size())
 	--model:forward(im2)
 	--local b=model:get(9).output:clone()
 	d=distances(a,2)
-	print(d)
-	print('\n')
+	--print(d)
+	--print('\n')
 	label = same and 1 or -1
 	table.insert(inputs, image.toDisplayTensor(input))
 	table.insert(labels, label)	
@@ -83,8 +84,14 @@ for i = 1, num_of_test do
 end
 
 images1=image.toDisplayTensor{input = slice(inputs,1,50,1), padding=10,nrow=5}
-print(images1:size())
-print(images1:type())
+labels1=slice(labels,1,50,1)
+labels2=torch.IntTensor(labels1):resize(10,5)
+print(labels2)
+results1=slice(results,1,50,1)
+results2=torch.DoubleTensor(results1):resize(10,5)
+print(results2)
+--print(images1:size())
+--print(images1:type())
 
 image.save('OUTPUTS/data_example1.png',images1)
 
