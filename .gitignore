@@ -1,4 +1,8 @@
-OUTPUTS/
+OUTPUTS*/
+*trained_model.net
+*.t7
+*.tgz
+pf83_split_aligned100/
 boot.php
 index.php
 install.php

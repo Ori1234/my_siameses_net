@@ -2,7 +2,9 @@ local info= debug.getinfo(1,'S');
 file_name=string.gsub(info.source, "(.*/)(.*)", "%2")
 --print(file_name)
 
-F1={}
+--F1={}
+--F_train={}
+--F_test={}
 --local F2
 
 --returns a table that contains a list of images path for each letter 1488 to 1514 that are found in [dir]
@@ -54,30 +56,33 @@ function slice(tbl, first, last, step)
 end
 
 
+
+--default letter names as I work with. see matlab script in nova to rename files to meet convention
 letters={
  'alef','bet', 'gimel', 'dalet', 'he', 'vav', 'zain', 'khet', 'tet', 'yod', 'kaf', 'lamed', 'mem', 'nun', 'samekh', 'ayin', 'pe', 'tsade', 'qof', 'resh', 'shin','tav'
 }
+reverse_letters={}
+for k,v in pairs(letters) do
+	reverse_letters[v]=k
+end
 
 
+-- table.indexOf( array, object ) returns the index
+-- of object in array. Returns 'nil' if not in array.
+table.indexOf = function( t, object )
+	local result
 
---function preper_data_real(F1_path,F2_path)
---F1={}
---F2={}
---print('\nERRORS HERE INDICATE THAT THERE"S NO TEST SAMPLES FOR THIS LETTER IN THE FOLDER: ')
---for i=1,#letters do
---        l=letters[i]
---        F1[l]={}
---	iter= io.popen("ls  "..F1_path..l.."*")
---        for f in iter:lines()do
---                table.insert(F1[l],f)
---        end
---        F2[l]={}
---        for f in io.popen("ls  "..F2_path..l.."*"):lines() do
---                table.insert(F2[l],f)
---        end
---end
---	return F1,F2
---end
+	if "table" == type( t ) then
+		for i=1,#t do
+			if object == t[i] then
+				result = i
+				break
+			end
+		end
+	end
+
+	return result
+end
 
 function preper_data_real_multi(data_main_folder)
 	F1={}
@@ -92,6 +97,7 @@ function preper_data_real_multi(data_main_folder)
 		end
 	end
 	count_data_multi(F1)
+	return F1
 end
 
 function pair_syntetic(letter,same)
@@ -109,7 +115,7 @@ function pair_syntetic(letter,same)
                         --print(same)
                         --print('a:'..a)
                         --print('b:'..b..'\n')
-                        --im1=im_transform(x..a,noise,0,{0,0})
+                        --im2=im_transform(x..a,noise,0,{0,0})
 	im1=im_transform(a,noise)
         im2=im_transform(b,noise)
 
@@ -161,7 +167,7 @@ function rand_staff(same)
 end
 
 --for syntetic test
-function rand_staff_multi(same)
+function rand_staff_multi(same,F1)
  	local folder1
 	local folder2
 
@@ -242,6 +248,34 @@ function choose_random_font_dep()
                 italic='italic'
         end
         return font..'-'..bold..'-'..italic..'.png'
+end
+
+
+distances = function(vectors,norm)
+   -- args:
+   local X = vectors
+   local norm = norm or 2
+   local N,D = X:size(1),X:size(2)
+   -- compute L2 distances:
+   local distances
+   if norm == 2 then
+      local X2 = X:clone():cmul(X):sum(2)
+      distances = (X*X:t()*-2) + X2:expand(N,N) + X2:reshape(1,N):expand(N,N)
+      distances:abs():sqrt()
+   elseif norm == 1 then
+      distances = X.new(N,N)
+      local tmp = X.new(N,D)
+      for i = 1,N do
+         local x = X[i]:clone():reshape(1,D):expand(N,D)
+         tmp[{}] = X
+         local dist = tmp:add(-1,x):abs():sum(2):squeeze()
+         distances[i] = dist
+      end
+   else
+      error('norm must be 1 or 2')
+   end
+   -- return dists
+   return distances
 end
 
 

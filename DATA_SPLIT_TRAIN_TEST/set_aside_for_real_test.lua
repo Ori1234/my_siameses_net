@@ -2,7 +2,7 @@ math.randomseed(os.time())
 orig_dir=arg[1] or '/home/wolf1/oriterne/DATA/real_data_RGB/all/'
 train_dir=arg[2] or '/home/wolf1/oriterne/DATA/real_data_RGB/train/'
 test_dir=arg[3] or '/home/wolf1/oriterne/DATA/real_data_RGB/test/'
-exclude_precent=arg[4] or 0.2
+exclude_precent=arg[4] or 0.5
 
 --TODO check arguments and add slash at end if missing
 

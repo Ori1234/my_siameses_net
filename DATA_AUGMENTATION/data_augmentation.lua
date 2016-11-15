@@ -3,17 +3,17 @@ require 'image'
 
 -- data augmentation methods
 
-local function crop(x, offsets, width, height)
+function crop(x, offsets, width, height)
    height = height or width
    return image.crop(x, offsets[1], offsets[2], offsets[1] + width, offsets[2] + height)
 end
 local function horizontal_reflection(x)
    return image.hflip(x)
 end
-local function zoomout(x)
-   return image.scale(x, 24, 24, 'bilinear')
+function zoomout(x)
+   return image.scale(x, 64, 64, 'bilinear') --original was 24
 end
-local CROP_POS24 = {}
+CROP_POS24 = {}
 local function generate_crop_pos24()
    for i = 0, 8, 4 do
       for j = 0, 8, 4 do
@@ -21,7 +21,15 @@ local function generate_crop_pos24()
       end
    end
 end
-local CROP_POS28 = {}
+CROP_POS_ALL = {}
+local function generate_crop_pos_all()
+   for i = 0, 8, 2 do
+      for j = 0, 8, 2 do
+	 table.insert(CROP_POS_ALL, {i, j})
+      end
+   end
+end
+CROP_POS28 = {}
 local function generate_crop_pos28()
    for i = 0, 4, 2 do
       for j = 0, 4, 2 do
@@ -31,7 +39,7 @@ local function generate_crop_pos28()
 end
 generate_crop_pos24()
 generate_crop_pos28()
-
+generate_crop_pos_all()
 function data_augmentation(x, y)
    local scale = #CROP_POS24 + #CROP_POS28
    if x:dim() == 4 then

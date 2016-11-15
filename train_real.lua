@@ -1,8 +1,9 @@
---no pretrain: th train_real.lua 100 ../../DATA/real_data_RGB/train/
---pretrain : th train_real.lua 100 ../../DATA/real_data_RGB/train/ -learning_rate 0.001 -weights OUTPUTS/<snapshot_train_synthetic>
+--no pretrain: th train_real.lua 100 ../../DATA/real_data_RGB/
+--pretrain : th train_real.lua 100 ../../DATA/real_data_RGB/ -learning_rate 0.001 -weights OUTPUTS/<snapshot_train_synthetic>
 require 'torch';
 require 'nn';
 require 'optim';
+metrics = require 'metrics'
 require 'image';
 --require 'dataset';
 require 'model';
@@ -80,12 +81,12 @@ end
 -- retrieve a view (same memory) of the parameters and gradients of these (wrt loss) of the model (Global)
 parameters, grad_parameters = model:getParameters();
 
-function train(letters)
+function train()
 	local saved_criterion = false;
 	for i = 1, params.max_epochs do
 		--add random shuffling here
-		train_one_epoch(letters)
-
+		train_one_epoch()
+		test_one_epoch()
 		if params.snapshot_epoch > 0 and (epoch % params.snapshot_epoch) == 0 then -- epoch is global (gotta love lua :p)
 			local filename = paths.concat(params.snapshot_dir, "snapshot_epoch_" .. epoch .. ".net")
 			os.execute('mkdir -p ' .. sys.dirname(filename))
@@ -105,8 +106,32 @@ function train(letters)
 end
 	
 
+function test_one_epoch()
+	test_size=500
+	local inputs = torch.CudaTensor(test_size,2,3,64,64)
+	local labels = torch.CudaTensor(test_size)
+	for i= 1,test_size do --for each mini-batch
+		local same=(math.random(1, 10) > 5)
+		local letter,folder1,folder2=rand_staff_multi(same,F_test)
+		local input=pair_real(letter,folder1,folder2)
+		input=input:cuda()
+		local label = same and 1 or -1
+		inputs[i]=input	
+		labels[i]=label
+	end
+	local dists = model:forward(inputs)
+	local err = criterion:forward(dists, labels)
+	print('epoch '..(epoch-1)..' test loss: '..err)	
+	dists=torch.exp(-dists)
+	local roc_points, thresholds = metrics.roc.points(dists:double(), labels:int())
+	local area = metrics.roc.area(roc_points)
 
-function train_one_epoch(letters)
+	print('area under curve:'..area)
+	print('num of tests '..test_size)
+
+end
+
+function train_one_epoch()
 	local time = sys.clock()
 	--train one epoch of the dataset
 	local errors=0
@@ -119,7 +144,7 @@ function train_one_epoch(letters)
 
 		for i=1,batch_size do 
 			local same=(math.random(1, 10) > 5)
-			local letter,folder1,folder2=rand_staff_multi(same)
+			local letter,folder1,folder2=rand_staff_multi(same,F_train)
 			local input=pair_real(letter,folder1,folder2)
 			input=input:cuda()
 			local label = same and 1 or -1
@@ -175,24 +200,11 @@ end
 	-----------------------------------------------------------------------------
 print("loading dataset...")
 print("dataset loaded")
-local letters={}
---	local test_percent=0.2
-local test_percent=-1 --all letters for training
-for i=1488,1514 do
---	if math.random(1,100)>100*test_percent then
-		table.insert(letters,i)
---	else
---		print('excluded letter '..i)
-	end
---end
---print('\n')
---print(letters)
-
---local total_num_of_letters=1514-1488+1
---print('excluded '..(total_num_of_letters-#letters)*1.0/total_num_of_letters)
 require 'help_funcs.lua'
 data_folder=params.data_folder
 print('data folder '..data_folder)
-preper_data_real_multi(data_folder)
-train(letters)
+F_train=preper_data_real_multi(data_folder..'train/')
+F_test=preper_data_real_multi(data_folder..'test/')
+test_one_epoch()
+train()
 

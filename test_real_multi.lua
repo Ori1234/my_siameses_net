@@ -40,6 +40,9 @@ for i = 1, num_of_test do
 end
 
 images1=image.toDisplayTensor{input = slice(inputs,1,50,1), padding=10,nrow=5}
+labels1=slice(labels,1,50,1)
+labels2=torch.IntTensor(labels1):resize(10,5)
+print(labels2)
 print(images1:size())
 print(images1:type())
 
@@ -66,4 +69,7 @@ gnuplot.plot(roc_points)
 
 
 
-
+results1=torch.totable(dists)
+results1=slice(results1,1,50,1)
+results2=torch.DoubleTensor(results1):resize(10,5)
+print(results2)

@@ -1,10 +1,12 @@
---no pretrain: th train_real_multi_classifier.lua 100 ../../../DATA/real_data_RGB/train/
+--no pretrain: th train_real_multi_classifier.lua 100 ../../../DATA/real_data_RGB/
 --pretrain : 
 require 'torch';
 require 'nn';
 require 'optim';
 require 'image';
 --require 'dataset';
+metrics = require 'metrics'
+
 	-----------------------------------------------------------------------------
 math.randomseed(os.time())
 	--------------------- parse command line options ----------------------------
@@ -68,7 +70,7 @@ function train()
 	for i = 1, params.max_epochs do
 		--add random shuffling here
 		train_one_epoch()
-
+		test_one_epoch()
 		if params.snapshot_epoch > 0 and (epoch % params.snapshot_epoch) == 0 then -- epoch is global (gotta love lua :p)
 			local filename = paths.concat(params.snapshot_dir, "snapshot_epoch_" .. epoch .. ".net")
 			os.execute('mkdir -p ' .. sys.dirname(filename))
@@ -87,6 +89,75 @@ function train()
 	end
 end
 	
+local test_size=500
+function test_one_epoch()
+	local inputs = torch.CudaTensor(test_size,3,64,64)
+	local labels = torch.CudaTensor(test_size)
+	--create a mini_batch
+	for i=1,test_size do
+		local folder=classes[math.random(#classes)]
+		folder_files=F_test[folder]
+		local letter=letters[math.random(#letters)] --letters is created by help_funcs.lua
+			--print(folder)
+			--print(letter)
+			--print(folder_files[letter])
+		while #folder_files[letter]==0 do
+			letter=letters[math.random(#letters)] --letters is created by help_funcs.lua
+		end
+
+		local input=single_real(letter,folder_files)   
+		input=input:cuda()
+		local label = index_of(classes,folder) --TODO find out index of folder in classes
+	 	--print(label)		
+		--print(input:size())
+		inputs[i]=input	
+		labels[i]=label
+	end
+        local dists = model:forward(inputs)
+        local err = criterion:forward(dists, labels)
+        print('epoch '..(epoch-1)..' test loss: '..err) 
+--[[
+        dists=torch.exp(-dists)
+        local roc_points, thresholds = metrics.roc.points(dists:double(), labels:int())
+        local area = metrics.roc.area(roc_points)
+]]	
+	roc_curve(test_size) 
+end
+
+function roc_curve(num_of_test)
+	inputs={}
+	labels={}
+	results={}
+	for i = 1, num_of_test do
+        	local same=(math.random(1, 10) > 5)
+	        letter,folder1,folder2=rand_staff_multi(same,F_test)
+	        input=pair_real(letter,folder1,folder2)
+	        --print(same)
+	        --im1=input[1]
+	        --im2=input[2]
+        	local output=model:forward(input:cuda())
+	        --print(output)
+		
+	        local a=model:get(9).output:clone()
+	        --print(a:size())
+	        --model:forward(im2)
+	        --local b=model:get(9).output:clone()
+        	d=distances(a,2)
+	        --print(d)
+	        --print('\n')
+	        label = same and 1 or -1
+	        table.insert(inputs, image.toDisplayTensor(input))
+	        table.insert(labels, label)
+	        table.insert(results,torch.exp(-d[2][1]))
+end
+local roc_points, thresholds = metrics.roc.points(torch.DoubleTensor(results), torch.IntTensor(labels))
+local area = metrics.roc.area(roc_points)
+
+print('area under curve:'..area)
+print('num of tests '..num_of_test)
+
+end
+
 
 
 function train_one_epoch()
@@ -102,7 +173,7 @@ function train_one_epoch()
 
 		for i=1,batch_size do
 			local folder=classes[math.random(#classes)]
-			folder_files=F1[folder]
+			folder_files=F_train[folder]
 			local letter=letters[math.random(#letters)] --letters is created by help_funcs.lua
 			--print(folder)
 			--print(letter)
@@ -168,7 +239,6 @@ end
 	-----------------------------------------------------------------------------
 
 require '../help_funcs.lua'
---require 'more_help_funcs.lua'
 
 function get_keys(table)
 	local keyset={}
@@ -204,8 +274,9 @@ end
 
 data_folder=params.data_folder
 print('data folder '..data_folder)
-preper_data_real_multi(data_folder)
-classes=get_keys(F1)
+F_train=preper_data_real_multi(data_folder..'train/')
+F_test=preper_data_real_multi(data_folder..'test/')
+classes=get_keys(F_train)
 require 'model';
 
 if params.weights ~= "" then
@@ -225,5 +296,6 @@ end
 
 parameters, grad_parameters = model:getParameters();
 --do return end
+test_one_epoch()
 train()
 

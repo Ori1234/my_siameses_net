@@ -18,11 +18,11 @@ cmd:text("Options")
 cmd:option("-batch_size", 50, "batch size")
 cmd:option("-learning_rate", 0.01, "learning_rate")
 cmd:option("-momentum", 0.9, "momentum")
-cmd:option("-snapshot_dir", "OUTPUTS/snapshot_train_synthetic/", "snapshot directory")
+cmd:option("-snapshot_dir", "OUTPUTS_synthetic/snapshot_train_synthetic/", "snapshot directory")
 cmd:option("-snapshot_epoch", 5, "snapshot after how many iterations?")
 cmd:option("-gpu", true, "use gpu")
 cmd:option("-weights", "", "pretrained model to begin training from")
-cmd:option("-log", "OUTPUTS/output log file")
+cmd:option("-log", "OUTPUTS_synthetic/output log file")
 
 params = cmd:parse(arg)
 

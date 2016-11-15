@@ -1,4 +1,4 @@
---test_real_multi_classifier.lua 200 'OUTPUTS/snapshot_train_real/snapshot_epoch_10.net' '../../../DATA/real_data_RGB/test/'
+--th test_real_multi_classifier.lua 200 'OUTPUTS/snapshot_train_real/snapshot_epoch_10.net' '../../../DATA/real_data_RGB/test/'
 require 'nn'
 require 'cunn'
 -- th -i test_real_multi.lua <num_of_tests><saved model><data folder>
@@ -17,7 +17,6 @@ local distances = function(vectors,norm)
    local X = vectors
    local norm = norm or 2
    local N,D = X:size(1),X:size(2)
-
    -- compute L2 distances:
    local distances
    if norm == 2 then
@@ -36,7 +35,6 @@ local distances = function(vectors,norm)
    else
       error('norm must be 1 or 2')
    end
-   
    -- return dists
    return distances
 end
