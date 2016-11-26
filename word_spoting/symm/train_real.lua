@@ -85,7 +85,9 @@ function train()
 	local saved_criterion = false;
 	for i = 1, params.max_epochs do
 		--add random shuffling here
+		--print('train'..i)
 		train_one_epoch()
+		--print('test'..i)
 		test_one_epoch()
 		if params.snapshot_epoch > 0 and (epoch % params.snapshot_epoch) == 0 then -- epoch is global (gotta love lua :p)
 			local filename = paths.concat(params.snapshot_dir, "snapshot_epoch_" .. epoch .. ".net")
@@ -107,19 +109,25 @@ end
 	
 
 function test_one_epoch()
-	test_size=500
+	test_size=2000
 	local inputs = torch.CudaTensor(test_size,2,3,64,64)
 	local labels = torch.CudaTensor(test_size)
 	for i= 1,test_size do --for each mini-batch
+--		print(i)
 		local same=(math.random(1, 10) > 5)
-		local folder1,folder2=rand_staff_word_spoting(same,F_test)
-		local input=pair_word_spoing(folder1,folder2)
+		local folder1,folder2=rand_staff_word_spoting(same,F_test,folders_test)
+--		print(folder1,folder2)
+		local input=pair_word_spoting(folder1,folder2)
+--		print('this1')
 		input=input:cuda()
 		local label = same and 1 or -1
 		inputs[i]=input	
 		labels[i]=label
+--		print('this1')
 	end
+--	print('before')
 	local dists = model:forward(inputs)
+--	print('after')
 	local err = criterion:forward(dists, labels)
 	print('epoch '..(epoch-1)..' test loss: '..err)	
 	dists=torch.exp(-dists)
@@ -144,8 +152,8 @@ function train_one_epoch()
 
 		for i=1,batch_size do 
 			local same=(math.random(1, 10) > 5)
-			local letter,folder1,folder2=rand_staff_multi(same,F_train)
-			local input=pair_real(letter,folder1,folder2)
+			local folder1,folder2=rand_staff_word_spoting(same,F_train,folders_train)
+			local input=pair_word_spoting(folder1,folder2)
 			input=input:cuda()
 			local label = same and 1 or -1
 			inputs[i]=input	
@@ -203,8 +211,16 @@ print("dataset loaded")
 require '../../help_funcs.lua'
 data_folder=params.data_folder
 print('data folder '..data_folder)
-F_train=preper_data_synthetic(data_folder..'train/')
-F_test=preper_data_synthetic(data_folder..'test/')
+F_train=preper_data_word_spoting(data_folder..'train/')
+--print(F_train)
+print('word_spoting_folders train')
+folders_train=set_word_spoting_folders(F_train)
+print('done')
+F_test=preper_data_word_spoting(data_folder..'test/')
+--print(F_test)
+print('word_spoting_folders test')
+folders_test=set_word_spoting_folders(F_test)
 test_one_epoch()
+--print('this')
 train()
 

@@ -86,12 +86,15 @@ end
 function preper_data_word_spoting(data_main_folder)
 	F1={}
 	for f in io.popen("ls "..data_main_folder):lines() do
+		print(f)
 		F1[f]={}
-		for pic in io.popen("ls  "..data_main_folder..f..'/'..l.."*.png"):lines() do
+		for pic in io.popen("ls  "..data_main_folder..f..'/'.."*.jpg"):lines() do
+				--print(pic)
+				--print(f)
 				table.insert(F1[f],pic)
 		end
 	end
-	count_data_multi(F1)
+	count_data(F1)
 	return F1
 end
 
@@ -178,31 +181,38 @@ function rand_staff(same)
 	return l,folder1,folder2
 end
 
+function set_word_spoting_folders(F1)
+	word_spoting_folders={}	
+	for k,v in pairs(F1) do
+		if #F1[k]~=0 then
+		table.insert(word_spoting_folders,k)
+		end	
+	end
+	return word_spoting_folders
+end
+	
 --for word spoing test
-function rand_staff_word_spoting(same,F1)
+function rand_staff_word_spoting(same,F1,word_spoting_folders)
  	local folder1
 	local folder2
-
-        folders={}
-	for k,v in pairs(F1) do
-		table.insert(folders,k)
-	end
-	s1=folders[math.random(#folders)]
+--	print(word_spoting_folders)
+       	s1=word_spoting_folders[math.random(#word_spoting_folders)]
 	if same then
-		s2=s1
 		while #F1[s1]<2  do
-       		         l=letters[math.random(#letters)]
+			s1=word_spoting_folders[math.random(#word_spoting_folders)]
 	        end	
+		s2=s1
 	else
-		s2=folders[math.random(#folders)]
+		s2=word_spoting_folders[math.random(#word_spoting_folders)]
 		while s1==s2 do
-			s2=folders[math.random(#folders)]
+			s2=word_spoting_folders[math.random(#word_spoting_folders)]
+		--	print('loop')
 	        end
 	end
 	--print(file_name..l)
-	print('help_funcs.lua '..s1)
-	print('help_funcs.lua '..s2)
-	print('\n')
+--	print('help_funcs.lua '..s1)
+--	print('help_funcs.lua '..s2)
+--	print('\n')
 	return F1[s1],F1[s2]
 end
 
@@ -241,9 +251,56 @@ function rand_staff_multi(same,F1)
 	return l,F1[s1],F1[s2]
 end
 
+--local input=pair_word_spoting(folder1,folder2)
+function pair_word_spoting(folder1,folder2)
+--	print(folder1)
+--	print(folder2)
+--	print(#folder1)
+--	print(#folder2)
 
+
+
+        im_path1=folder1[math.random(#folder1)]
+
+        im_path2=folder2[math.random(#folder2)]
+
+        while im_path1==im_path2 do
+                im_path2=folder2[math.random(#folder2)]
+		
+--		print(im_path2)
+        end
+	--print(l)
+--	print(im_path1)
+--	print(im_path2)
+--	print('\n')
+	local im1=image.load(im_path1)
+        local im2=image.load(im_path2)
+        --        3) append x_a,x_b 
+	local width=64
+	local height=64
+	im1=image.scale(im1, width, height)--'bilinear' 4 atg default is
+	im2=image.scale(im2, width, height)--'bilinear' 4 atg default is
+	local input=torch.Tensor(2,im1:size(1),im1:size(2),im1:size(3))
+        --        3) run (almost probably need to change model sizes)   
+--        print(im1:size())
+--        print(im2:size())
+--	print(input:size())
+	input[1]=im1
+        input[2]=im2
+--        print('this')
+	mean=input:mean()
+        std=input:std()
+        input:add(-mean)
+        input:mul(1.0/std)
+--	print('this')
+	return input
+end
+
+
+
+
+require 'image'
 function pair_real(l,folder1,folder2)
-	require 'image'
         im_path1=folder1[l][math.random(#folder1[l])]
 
         im_path2=folder2[l][math.random(#folder2[l])]
