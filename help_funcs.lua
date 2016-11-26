@@ -83,6 +83,18 @@ table.indexOf = function( t, object )
 
 	return result
 end
+function preper_data_word_spoting(data_main_folder)
+	F1={}
+	for f in io.popen("ls "..data_main_folder):lines() do
+		F1[f]={}
+		for pic in io.popen("ls  "..data_main_folder..f..'/'..l.."*.png"):lines() do
+				table.insert(F1[f],pic)
+		end
+	end
+	count_data_multi(F1)
+	return F1
+end
+
 
 function preper_data_real_multi(data_main_folder)
 	F1={}
@@ -166,7 +178,37 @@ function rand_staff(same)
 	return l,folder1,folder2
 end
 
---for syntetic test
+--for word spoing test
+function rand_staff_word_spoting(same,F1)
+ 	local folder1
+	local folder2
+
+        folders={}
+	for k,v in pairs(F1) do
+		table.insert(folders,k)
+	end
+	s1=folders[math.random(#folders)]
+	if same then
+		s2=s1
+		while #F1[s1]<2  do
+       		         l=letters[math.random(#letters)]
+	        end	
+	else
+		s2=folders[math.random(#folders)]
+		while s1==s2 do
+			s2=folders[math.random(#folders)]
+	        end
+	end
+	--print(file_name..l)
+	print('help_funcs.lua '..s1)
+	print('help_funcs.lua '..s2)
+	print('\n')
+	return F1[s1],F1[s2]
+end
+
+
+
+--for real test
 function rand_staff_multi(same,F1)
  	local folder1
 	local folder2
@@ -278,7 +320,52 @@ distances = function(vectors,norm)
    return distances
 end
 
+function tableMerge(t1, t2)
+    for k,v in pairs(t2) do
+        if type(v) == "table" then
+            if type(t1[k] or false) == "table" then
+                tableMerge(t1[k] or {}, t2[k] or {})
+            else
+                t1[k] = v
+            end
+        else
+            t1[k] = v
+        end
+    end
+    return t1
+end
 
+function get_keys(table)
+        local keyset={}
+        local n=0
+        for k,v in pairs(table) do
+                n=n+1
+                keyset[n]=k
+        end
+        return keyset
+end
+function single_real(l,folder)
+        im_path1=folder[l][math.random(#folder[l])]
+        local input=image.load(im_path1)
+        mean=input:mean()
+        std=input:std()
+        input:add(-mean)
+        input:mul(1.0/std)
+
+        return input
+end
+index_of = function( t, object )
+    if "table" == type( t ) then
+        for i = 1, #t do
+            if object == t[i] then
+                return i
+            end
+        end
+        return -1
+    else
+            error("table.indexOf expects table for first argument, " .. type(t) .. " given")
+    end
+end
 
 
 

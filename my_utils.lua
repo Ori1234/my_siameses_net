@@ -6,7 +6,7 @@
 --or im_transform(falsel,0,0,{0,0})
 import 'image'
 --image_path='/home/wolf1/oriterne/fonts/results_scaled_preserve_ratio/results_scaled_preserve_ratio/'
-image_path='./'
+image_path=''
 function im_transform(fileName,noise,rotate,translate)
 --	if cudnn then
 --		torch.setdefaulttensortype('torch.FloatTensor')

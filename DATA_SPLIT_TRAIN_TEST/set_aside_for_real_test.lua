@@ -1,3 +1,4 @@
+--th set_aside_for_real_test.lua /home/wolf/oriterne/BAVLI/outputs/ /home/wolf/oriterne/BAVLI/outputs/train/ /home/wolf/oriterne/BAVLI/outputs/test/ 0.3
 math.randomseed(os.time())
 orig_dir=arg[1] or '/home/wolf1/oriterne/DATA/real_data_RGB/all/'
 train_dir=arg[2] or '/home/wolf1/oriterne/DATA/real_data_RGB/train/'
