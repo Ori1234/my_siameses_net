@@ -86,7 +86,7 @@ end
 function preper_data_word_spoting(data_main_folder)
 	F1={}
 	for f in io.popen("ls "..data_main_folder):lines() do
-		print(f)
+	--	print(f)
 		F1[f]={}
 		for pic in io.popen("ls  "..data_main_folder..f..'/'.."*.jpg"):lines() do
 				--print(pic)
@@ -94,7 +94,7 @@ function preper_data_word_spoting(data_main_folder)
 				table.insert(F1[f],pic)
 		end
 	end
-	count_data(F1)
+	print(count_data(F1))
 	return F1
 end
 
@@ -127,10 +127,6 @@ function pair_syntetic(letter,same)
                 b=a
         end
         noise=1
-                        --print(same)
-                        --print('a:'..a)
-                        --print('b:'..b..'\n')
-                        --im2=im_transform(x..a,noise,0,{0,0})
 	im1=im_transform(a,noise)
         im2=im_transform(b,noise)
 
@@ -209,10 +205,6 @@ function rand_staff_word_spoting(same,F1,word_spoting_folders)
 		--	print('loop')
 	        end
 	end
-	--print(file_name..l)
---	print('help_funcs.lua '..s1)
---	print('help_funcs.lua '..s2)
---	print('\n')
 	return F1[s1],F1[s2]
 end
 
@@ -228,13 +220,12 @@ function rand_staff_multi(same,F1)
 	for k,v in pairs(F1) do
 		table.insert(folders,k)
 	end
-	--print(l)
 	s1=folders[math.random(#folders)]
 	if same then
-		s2=s1
 		while #F1[s1][l]<2  do
        		         l=letters[math.random(#letters)]
 	        end	
+		s2=s1
 	else
 		s2=folders[math.random(#folders)]
 		while s1==s2 do
@@ -244,20 +235,10 @@ function rand_staff_multi(same,F1)
 	                l=letters[math.random(#letters)]
         	end
         end
-	--print(file_name..l)
-	--print('help_funcs.lua '..s1)
-	--print('help_funcs.lua '..s2)
-	--print(..'\n')
 	return l,F1[s1],F1[s2]
 end
 
---local input=pair_word_spoting(folder1,folder2)
 function pair_word_spoting(folder1,folder2)
---	print(folder1)
---	print(folder2)
---	print(#folder1)
---	print(#folder2)
-
 
 
         im_path1=folder1[math.random(#folder1)]
@@ -267,32 +248,20 @@ function pair_word_spoting(folder1,folder2)
         while im_path1==im_path2 do
                 im_path2=folder2[math.random(#folder2)]
 		
---		print(im_path2)
         end
-	--print(l)
---	print(im_path1)
---	print(im_path2)
---	print('\n')
 	local im1=image.load(im_path1)
         local im2=image.load(im_path2)
-        --        3) append x_a,x_b 
 	local width=64
 	local height=64
 	im1=image.scale(im1, width, height)--'bilinear' 4 atg default is
 	im2=image.scale(im2, width, height)--'bilinear' 4 atg default is
 	local input=torch.Tensor(2,im1:size(1),im1:size(2),im1:size(3))
-        --        3) run (almost probably need to change model sizes)   
---        print(im1:size())
---        print(im2:size())
---	print(input:size())
 	input[1]=im1
         input[2]=im2
---        print('this')
 	mean=input:mean()
         std=input:std()
         input:add(-mean)
         input:mul(1.0/std)
---	print('this')
 	return input
 end
 
@@ -328,6 +297,7 @@ end
 
 
 
+--[[
 function choose_random_font_dep()  
         local font = font_list[math.random(#font_list)] 
         local bold='normal' 
@@ -349,7 +319,7 @@ function choose_random_font_dep()
         return font..'-'..bold..'-'..italic..'.png'
 end
 
-
+--]]
 distances = function(vectors,norm)
    -- args:
    local X = vectors

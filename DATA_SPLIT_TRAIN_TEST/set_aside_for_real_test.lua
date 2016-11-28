@@ -53,3 +53,7 @@ end
 --end
 
 print(count/total_count)
+os.execute('rm '..train_dir..'*/*.txt')
+os.execute('rmdir '..train_dir..'*')
+os.execute('rm '..test_dir..'*/*.txt')
+os.execute('rmdir '..test_dir..'*')
