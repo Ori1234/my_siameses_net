@@ -249,8 +249,21 @@ function pair_word_spoting(folder1,folder2)
                 im_path2=folder2[math.random(#folder2)]
 		
         end
-	local im1=image.load(im_path1)
-        local im2=image.load(im_path2)
+	local bool1,im1=pcall(image.load,im_path1)
+        local bool2,im2=pcall(image.load,im_path2)
+	while not  bool1 or not bool2 do
+	
+	       	im_path1=folder1[math.random(#folder1)]
+
+        	im_path2=folder2[math.random(#folder2)]
+
+        	while im_path1==im_path2 do
+                	im_path2=folder2[math.random(#folder2)]
+	        end
+		bool1,im1=pcall(image.load,im_path1)
+	        bool2,im2=pcall(image.load,im_path2)
+		
+	end
 	local width=64
 	local height=64
 	im1=image.scale(im1, width, height)--'bilinear' 4 atg default is

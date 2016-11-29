@@ -39,6 +39,10 @@ end
 for dir in io.popen("ls "..train_dir):lines() do
 	move_dir(train_dir..'/'..dir,test_dir..'/'..dir)
 end
+os.execute('rm '..train_dir..'*/*.txt')
+os.execute('rm '..test_dir..'*/*.txt')
+os.execute('rmdir '..train_dir..'*')
+os.execute('rmdir '..test_dir..'*')
 
 
 --local count=0
@@ -53,7 +57,3 @@ end
 --end
 
 print(count/total_count)
-os.execute('rm '..train_dir..'*/*.txt')
-os.execute('rmdir '..train_dir..'*')
-os.execute('rm '..test_dir..'*/*.txt')
-os.execute('rmdir '..test_dir..'*')

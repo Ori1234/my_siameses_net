@@ -17,11 +17,11 @@ cmd:text("Arguments")
 cmd:argument("-max_epochs", "maximum epochs")
 cmd:argument("-data_folder", "/home/wolf1/oriterne/DATA/real_data_RGB")
 cmd:text("Options")
-cmd:option("-batch_size", 50, "batch size")
+cmd:option("-batch_size", 100, "batch size")
 cmd:option("-learning_rate", 0.01, "learning_rate")
 cmd:option("-momentum", 0.9, "momentum")
 cmd:option("-snapshot_dir", "OUTPUTS/snapshot_train_real/", "snapshot directory")
-cmd:option("-snapshot_epoch", 5, "snapshot after how many iterations?")
+cmd:option("-snapshot_epoch", 20, "snapshot after how many iterations?")
 cmd:option("-gpu", true, "use gpu")
 cmd:option("-weights", "", "pretrained model to begin training from")
 cmd:option("-log", "OUTPUTS/output log file train real")
@@ -119,8 +119,8 @@ end
 	
 
 function test_one_epoch()
-	local epoch_size=100
-	test_size=10  ---batch size
+	local epoch_size=3000
+	test_size=300  ---batch size
 	local inputs = torch.CudaTensor(test_size,2,3,64,64)
 	local labels = torch.CudaTensor(test_size)
 	local labels_append
@@ -128,7 +128,7 @@ function test_one_epoch()
 --	print(dists_append:size())
 --	print(labels_append:size())
 	for mini_batch_start=1,epoch_size,test_size do
-		error=0
+		errors=0
 		for i= 1,test_size do --for each mini-batch
 			local same=(math.random(1, 10) > 5)
 			local folder1,folder2=rand_staff_word_spoting(same,F_test,folders_test)
@@ -150,14 +150,14 @@ function test_one_epoch()
 			dists_append:cat(dists:double())
 			labels_append:cat(labels:int())
 		end
-		error=error+err
+		errors=errors+err
 	end
 	num_of_batchs=epoch_size/test_size
-	print('epoch '..(epoch-1)..' test loss: '..error/num_of_batchs)	
+	print('epoch '..(epoch-1)..' test loss: '..errors/num_of_batchs)	
 	local roc_points, thresholds = metrics.roc.points(dists_append, labels_append)
 	local area = metrics.roc.area(roc_points)
 
-	testLogger:add{['% mean class accuracy (test set)'] =error/num_of_batchs}
+	testLogger:add{['test loss'] =errors/num_of_batchs}
 	rocLogger:add{['AUC'] = area}
 
 	print('area under curve:'..area)
@@ -166,7 +166,7 @@ function test_one_epoch()
 end
 
 function train_one_epoch()
-	local train_epoch=100
+	local train_epoch=15000
 	local time = sys.clock()
 	--train one epoch of the dataset
 	local errors=0

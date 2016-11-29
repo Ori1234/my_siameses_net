@@ -14,9 +14,18 @@ function build_model(libs)
 
     encoder:add(nn.ReLU())
 --    encoder:add(nn.SpatialMaxPooling(2, 2, 2, 2)) -- max pooling (feature maps are 5x5)
+     encoder:add(nn.SpatialConvolution(50, 100, 5, 5)) -- 20 input feature maps and output 50, 5x5 convolution kernel (feature maps are 10x10) 
 
-    manualy_adjust=50*2*5
-    manualy_adjust=50*56*56
+    encoder:add(nn.ReLU())
+--    encoder:add(nn.SpatialMaxPooling(2, 2, 2, 2)) -- max pooling (feature maps are 5x5)
+
+   encoder:add(nn.SpatialConvolution(100, 50, 5, 5)) -- 20 input feature maps and output 50, 5x5 convolution kernel (feature maps are 10x10) 
+
+    encoder:add(nn.ReLU())
+--    encoder:add(nn.SpatialMaxPooling(2, 2, 2, 2)) -- max pooling (feature maps are 5x5)
+
+
+    manualy_adjust=50*48*48
     --encoder:add(nn.View(50*5*5)) --reshapes to view data at 50x4x4
     encoder:add(nn.View(manualy_adjust)) --reshapes to view data at 50x4x4
     --encoder:add(nn.Linear(50*5*5, 500))

@@ -144,7 +144,7 @@ for i = 1, epochsNb do
 	--TESTING
 	error=0
 	roc_curve=0
-	data.select('test')
+	data.select('test') -- TODO prob. not nessecery only once
 	for batchNb=1,testBatches do
 	    -- Fetch triplet
 --	   x = data.getBatch(batchNb, 'test', 'soft-neg1')
