@@ -55,7 +55,8 @@ else
 	torch.setdefaulttensortype('torch.FloatTensor')
 end
 
---batch_size = params.batch_size
+epoch = 0
+batch_size = params.batch_size
 --Load model and criterion
 
 if params.weights ~= "" then
@@ -82,12 +83,12 @@ parameters, grad_parameters = model:getParameters();
 
 function train()
 	local saved_criterion = false;
-	for epoch = 0, params.max_epochs do
+	for i = 1, params.max_epochs do
 		--add random shuffling here
 		--print('train'..i)
-		train_one_epoch(epoch+1)
+		train_one_epoch()
 		--print('test'..i)
-		test_one_epoch(epoch+1)
+		test_one_epoch()
 		to_plot=true
 		if to_plot then
 		      trainLogger:style{['% mean class accuracy (train set)'] = '-'}
@@ -97,7 +98,7 @@ function train()
 		      testLogger:plot()
 		      rocLogger:plot()
    		end
-		
+
 		if params.snapshot_epoch > 0 and (epoch % params.snapshot_epoch) == 0 then -- epoch is global (gotta love lua :p)
 			local filename = paths.concat(params.snapshot_dir, "snapshot_epoch_" .. epoch .. ".net")
 			os.execute('mkdir -p ' .. sys.dirname(filename))
@@ -113,82 +114,78 @@ function train()
 				torch.save(dataset_attributes_filename, dataset_attributes)
 			end
 		end
-		epoch = epoch + 1	
 	end
 end
 	
 
-function test_one_epoch(epochNb)
-	data.select('test')-- don't need to shuffle test
-	--local num_of_batches=testBatches
-	--local test_size=batchDim
+function test_one_epoch()
+	local epoch_size=3000
+	test_size=300  ---batch size
+	local inputs = torch.CudaTensor(test_size,2,3,64,64)
+	local labels = torch.CudaTensor(test_size)
 	local labels_append
 	local dists_append
-
-
 --	print(dists_append:size())
 --	print(labels_append:size())
---	for mini_batch_start=1,epoch_size,test_size do
-	--print(testBatches)
-	errors=0
-	for batchNb=1,testBatches do
-		local inputs, labels = data.getBatch(batchNb,'test')
-		inputs=inputs:cuda()
-		labels=labels:cuda()
-	--	for i= 1,test_size do --for each mini-batch
-	--		local same=(math.random(1, 10) > 5)
-	--		local folder1,folder2=rand_staff_word_spoting(same,F_test,folders_test)
-	--		local input=pair_word_spoting(folder1,folder2)
-	--		input=input:cuda()
-	--		local label = same and 1 or -1
-	--		inputs[i]=input	
-	--		labels[i]=label
-	--	end
+	for mini_batch_start=1,epoch_size,test_size do
+		errors=0
+		for i= 1,test_size do --for each mini-batch
+			local same=(math.random(1, 10) > 5)
+			local folder1,folder2=rand_staff_word_spoting(same,F_test,folders_test)
+			local input=pair_word_spoting(folder1,folder2)
+			input=input:cuda()
+			local label = same and 1 or -1
+			inputs[i]=input	
+			labels[i]=label
+		end
 		local dists = model:forward(inputs)
 --		print(dists:size())
-		--print('\n')	
+	
 		local err = criterion:forward(dists, labels)
 		dists=torch.exp(-dists)
 		if not dists_append then
-			dists_append=dists:double():clone()
-			labels_append=labels:int():clone()
+			dists_append=dists:double()
+			labels_append=labels:int()
 		else	
-			dists_append:cat(dists:double():clone())
-			labels_append:cat(labels:int():clone())
+			dists_append:cat(dists:double())
+			labels_append:cat(labels:int())
 		end
 		errors=errors+err
-                xlua.progress(batchNb,testBatches)--display progress
 	end
-	print('epoch '..epochNb..' test loss: '..errors/testBatches)	
+	num_of_batchs=epoch_size/test_size
+	print('epoch '..(epoch-1)..' test loss: '..errors/num_of_batchs)	
 	local roc_points, thresholds = metrics.roc.points(dists_append, labels_append)
 	local area = metrics.roc.area(roc_points)
 
-	testLogger:add{['test loss'] =errors/testBatches}
+	testLogger:add{['test loss'] =errors/num_of_batchs}
 	rocLogger:add{['AUC'] = area}
 
 	print('area under curve:'..area)
+--	print('num of tests '..test_size)
+
 end
 
-function train_one_epoch(epoch)
+function train_one_epoch()
+	local train_epoch=15000
 	local time = sys.clock()
-	data.select('train')
 	--train one epoch of the dataset
 	local errors=0
 	local lr=params.learning_rate
-	--for mini_batch_start = 1,train_epoch, batch_size do --for each mini-batch
-	for batchNb=1,trainBatches do
-		local inputs, labels=data.getBatch(batchNb,'train')
-		inputs=inputs:cuda()
-		labels=labels:cuda()
---		for i=1,batch_size do 
---			local same=(math.random(1, 10) > 5)
---			local folder1,folder2=rand_staff_word_spoting(same,F_train,folders_train)
---			local input=pair_word_spoting(folder1,folder2)
---			input=input:cuda()
---			local label = same and 1 or -1
---			inputs[i]=input	
---			labels[i]=label
---		end
+	for mini_batch_start = 1,train_epoch, batch_size do --for each mini-batch
+		local inputs = torch.CudaTensor(batch_size,2,3,64,64)
+		local labels = torch.CudaTensor(batch_size)
+		--create a mini_batch
+		local mini_batch_stop=math.min(mini_batch_start + batch_size - 1, train_epoch)
+
+		for i=1,batch_size do 
+			local same=(math.random(1, 10) > 5)
+			local folder1,folder2=rand_staff_word_spoting(same,F_train,folders_train)
+			local input=pair_word_spoting(folder1,folder2)
+			input=input:cuda()
+			local label = same and 1 or -1
+			inputs[i]=input	
+			labels[i]=label
+		end
 		--create a closure to evaluate df/dX where x are the model parameters at a given point
 		--and df/dx is the gradient of the loss wrt to thes parameters
 
@@ -223,16 +220,18 @@ function train_one_epoch(epoch)
 		--This function updates the global parameters variable (which is a view on the models parameters)
 		optim.sgd(func_eval, parameters, config)
 	
-		xlua.progress(batchNb, trainBatches)--display progress
+		xlua.progress(mini_batch_start, train_epoch)--display progress
 	end
 	-- time taken
 	print(lr)
 	time = sys.clock() - time
 	--print("time taken for 1 epoch = " .. (time * 1000) .. "ms, time taken to learn 1 sample = " .. ((time/5000)*1000) .. 'ms')
 	--print(errors)
-	print('epoch '..epoch..' loss: '..errors/trainBatches)
-	trainLogger:add{['% mean class accuracy (train set)'] = errors/trainBatches}
+	num_of_batchs=train_epoch/batch_size--100
+	print('epoch '..epoch..' loss: '..errors/num_of_batchs)
+	trainLogger:add{['% mean class accuracy (train set)'] = errors/num_of_batchs}
 
+	epoch = epoch + 1	
 end
 	-----------------------------------------------------------------------------
 	--------------------- Training Function -------------------------------------
@@ -246,17 +245,18 @@ trainLogger = optim.Logger(paths.concat('OUTPUTS', 'train.log'))
 testLogger = optim.Logger(paths.concat('OUTPUTS', 'test.log'))
 rocLogger=optim.Logger(paths.concat('OUTPUTS', 'roc.log'))
 
-data=require 'data'
-data.select('train')
-data.select('test')
---batchDim = 100 
-batchDim=200
-print('batch size is ...'..batchDim)
-trainBatches = data.getNbOfBatches(batchDim).train
-testBatches = data.getNbOfBatches(batchDim).test
-print('trainBatches: ', trainBatches)
-print('testBatches: ', testBatches)
-
-test_one_epoch(0)
+data_folder=params.data_folder
+print('data folder '..data_folder)
+F_train=preper_data_word_spoting(data_folder..'train/')
+--print(F_train)
+print('word_spoting_folders train')
+folders_train=set_word_spoting_folders(F_train)
+print('done')
+F_test=preper_data_word_spoting(data_folder..'test/')
+--print(F_test)
+print('word_spoting_folders test')
+folders_test=set_word_spoting_folders(F_test)
+test_one_epoch()
+--print('this')
 train()
 

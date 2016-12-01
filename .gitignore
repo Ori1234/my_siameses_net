@@ -2,6 +2,7 @@ OUTPUTS*/
 *trained_model.net
 *.t7
 *.tgz
+*.swp
 pf83_split_aligned100/
 boot.php
 index.php
