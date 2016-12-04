@@ -1,4 +1,4 @@
---no pretrain: th train_real.lua 100 /home/wolf/oriterne/BAVLI/outputs/
+--no pretrain: th train_real.lua 100 'testing 123'
 --pretrain : th train_real.lua 100 /see above/ -learning_rate 0.001 -weights OUTPUTS/<snapshot_train_synthetic>
 require 'torch';
 require 'nn';
@@ -14,17 +14,22 @@ math.randomseed(os.time())
 cmd = torch.CmdLine()
 cmd:text()
 cmd:text("Arguments")
+
 cmd:argument("-max_epochs", "maximum epochs")
-cmd:argument("-data_folder", "/home/wolf1/oriterne/DATA/real_data_RGB")
+cmd:argument("-Title", "for results email")
+cmd:option("-data_folder", "../../../../DATA/real_data_RGB/some")
+cmd:option("t7",'1dataset.t7')
 cmd:text("Options")
-cmd:option("-batch_size", 100, "batch size")
+cmd:option("-batch_size", 200, "batch size")
 cmd:option("-learning_rate", 0.01, "learning_rate")
 cmd:option("-momentum", 0.9, "momentum")
 cmd:option("-snapshot_dir", "OUTPUTS/snapshot_train_real/", "snapshot directory")
 cmd:option("-snapshot_epoch", 20, "snapshot after how many iterations?")
 cmd:option("-gpu", true, "use gpu")
 cmd:option("-weights", "", "pretrained model to begin training from")
-cmd:option("-log", "OUTPUTS/output log file train real")
+cmd:option("-log", "OUTPUTS/output_log_file")
+cmd:option("-output_dir", "OUTPUTS/")
+
 
 params = cmd:parse(arg)
 
@@ -36,7 +41,8 @@ if params.log ~= "" then
 	cmd:addTime('torch_benchmarks','%F %T')
 	print("setting log file as "..params.log)
 end
-
+local excel_doc='https://docs.google.com/spreadsheets/d/1d4i3zT-eQkuxZQfOjOjtMhfbrIEyXvwuudhYyDXYBtE/edit#gid=0'
+print('for experiment details see: '..excel_doc)
 libs = {}
 run_on_cuda = false
 if params.gpu then
@@ -54,6 +60,13 @@ else
 	libs['ReLU'] = nn.ReLU
 	torch.setdefaulttensortype('torch.FloatTensor')
 end
+if not paths.dirp(params.snapshot_dir) then
+	os.execute('mkdir -p '..params.snapshot_dir) --else returns and error from parseargs
+end
+if not paths.dirp(params.output_dir) then
+	os.execute('mkdir -p '..params.output_dir) --else returns and error from parseargs
+end
+
 
 --batch_size = params.batch_size
 --Load model and criterion
@@ -79,24 +92,20 @@ end
 -----------------------------------------------------------------------------
 -- retrieve a view (same memory) of the parameters and gradients of these (wrt loss) of the model (Global)
 parameters, grad_parameters = model:getParameters();
-
+local max_auc=0
 function train()
 	local saved_criterion = false;
 	for epoch = 0, params.max_epochs do
-		--add random shuffling here
-		--print('train'..i)
-		train_one_epoch(epoch+1)
-		--print('test'..i)
-		test_one_epoch(epoch+1)
-		to_plot=true
-		if to_plot then
-		      trainLogger:style{['% mean class accuracy (train set)'] = '-'}
-		      testLogger:style{['% mean class accuracy (test set)'] = '-'}
-		      rocLogger:style{['% auc (test set)'] = '-'}
-		      trainLogger:plot()
-		      testLogger:plot()
-		      rocLogger:plot()
-   		end
+		trn_loss=train_one_epoch(epoch+1)
+		tst_loss,auc=test_one_epoch(epoch+1)
+		
+		if auc>max_auc then
+			max_auc=auc
+		end	
+	  	lossLogger:add{trn_loss,tst_loss}
+		rocLogger:add{auc}
+		lossLogger:plot()
+		rocLogger:plot()
 		
 		if params.snapshot_epoch > 0 and (epoch % params.snapshot_epoch) == 0 then -- epoch is global (gotta love lua :p)
 			local filename = paths.concat(params.snapshot_dir, "snapshot_epoch_" .. epoch .. ".net")
@@ -163,10 +172,11 @@ function test_one_epoch(epochNb)
 	local roc_points, thresholds = metrics.roc.points(dists_append, labels_append)
 	local area = metrics.roc.area(roc_points)
 
-	testLogger:add{['test loss'] =errors/testBatches}
-	rocLogger:add{['AUC'] = area}
+--	testLogger:add{['test loss'] =errors/testBatches}
+--	rocLogger:add{['AUC'] = area}
 
 	print('area under curve:'..area)
+	return errors/testBatches,area
 end
 
 function train_one_epoch(epoch)
@@ -231,26 +241,26 @@ function train_one_epoch(epoch)
 	--print("time taken for 1 epoch = " .. (time * 1000) .. "ms, time taken to learn 1 sample = " .. ((time/5000)*1000) .. 'ms')
 	--print(errors)
 	print('epoch '..epoch..' loss: '..errors/trainBatches)
-	trainLogger:add{['% mean class accuracy (train set)'] = errors/trainBatches}
-
+--	trainLogger:add{['% mean class accuracy (train set)'] = errors/trainBatches}
+return errors/trainBatches
 end
 	-----------------------------------------------------------------------------
 	--------------------- Training Function -------------------------------------
 	-----------------------------------------------------------------------------
-print("loading dataset...")
-print("dataset loaded")
 require '../../help_funcs.lua'
 
 -- log results to files
-trainLogger = optim.Logger(paths.concat('OUTPUTS', 'train.log'))
-testLogger = optim.Logger(paths.concat('OUTPUTS', 'test.log'))
-rocLogger=optim.Logger(paths.concat('OUTPUTS', 'roc.log'))
-
+lossLogger = optim.Logger(paths.concat(params.output_dir, 'loss.log'))
+lossLogger:setNames{'Train loss','Test loss'}
+lossLogger:style{'-','-'}
+rocLogger=optim.Logger(paths.concat(params.output_dir, 'roc.log'))
+rocLogger:setNames{'AUC'}
+rocLogger:style{'-'}
 data=require 'data'
+data.load(data_folder,params.t7)
 data.select('train')
 data.select('test')
---batchDim = 100 
-batchDim=200
+batchDim=params.batch_size
 print('batch size is ...'..batchDim)
 trainBatches = data.getNbOfBatches(batchDim).train
 testBatches = data.getNbOfBatches(batchDim).test
@@ -258,5 +268,16 @@ print('trainBatches: ', trainBatches)
 print('testBatches: ', testBatches)
 
 test_one_epoch(0)
+
 train()
+
+local Title='experiment: '..params.Title..' : '..max_auc
+line='mutt -s "'..Title..'" oriterne@post.tau.ac.il -i "'..
+	params.log..'" -a '..
+	params.output_dir..'roc.log.eps '..
+	params.output_dir..'roc.log '..
+	params.output_dir..'loss.log.eps '..
+	params.output_dir..'loss.log < /dev/null'
+print(line)
+os.execute(line)
 

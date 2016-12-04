@@ -14,70 +14,71 @@ torch.setdefaulttensortype('torch.FloatTensor')
 dataset = {}
 local imageSide =64 
 
+	
+local my_load=function(data_path,t7_path)
+	-- Loading the dataset to RAM --------------------------------------------------
+	t7_path=t7_path or 'big_dataset.t7'
+	if paths.filep(t7_path) then
+		io.write('Loading whole data set. Please wait...'..t7_path); io.flush()
+		dataset = torch.load(t7_path)
+		print(' Done.')
+	else
+	   -- This script uses pubfig83.v1.tgz from http://vision.seas.harvard.edu/pubfig83/
+	   -- split in train and test folders
+	   -- each containing identities folders with images inside.
+	   -- Format:
+	   -- datasetRoot/{train,test}/<celebrityName>
+	local datasetPaths = {}
+	datasetPaths.base = data_path or  '../../../../DATA/BAVLI/some'
+	print('###getting data from '..datasetPaths.base)
+	for _, t in ipairs {'train', 'test'} do
+        	print('Building ' .. t .. 'ing data set')
 
--- Loading the dataset to RAM --------------------------------------------------
-save_path='big_dataset.t7'
-if paths.filep(save_path) then
-   io.write('Loading whole data set. Please wait...'); io.flush()
-   dataset = torch.load(save_path)
-   print(' Done.')
-else
-   -- This script uses pubfig83.v1.tgz from http://vision.seas.harvard.edu/pubfig83/
-   -- split in train and test folders
-   -- each containing identities folders with images inside.
-   -- Format:
-   -- datasetRoot/{train,test}/<celebrityName>
-   local datasetPaths = {}
-   datasetPaths.base = '../../../../DATA/BAVLI/some'
+	      datasetPaths[t] = datasetPaths.base .. '/' .. t .. '/'
+	      local identities = sys.ls(datasetPaths[t]):split('\n')
+	      local dataSize = tonumber(sys.execute('find ' .. datasetPaths[t] .. ' -iname "*.jpg"| wc -l'))
+	      dataSize=math.min(limit_datasize[t], dataSize)
+	      dataset[t] = {
+        	 data = torch.Tensor(dataSize, 3, imageSide, imageSide),
+        	 label = torch.Tensor(dataSize),
+	         index = torch.Tensor(#identities, 2),
+      		}
 
-   for _, t in ipairs {'train', 'test'} do
-      print('Building ' .. t .. 'ing data set')
+	      local count = 0
+	      for id, idName in ipairs(identities) do
+	         dataset[t].index[id][1] = count + 1
+		 if count<dataSize then
+	      	   for _, img in ipairs(sys.ls(datasetPaths[t] .. idName):split('\n')) do
+	         	   count = count + 1
+			    if count<=dataSize then
+	--		    print(count)
+		            xlua.progress(count, dataSize)
+		            -- print(count, paths.concat(datasetPaths[t], idName, img))
+		            local original = image.load(paths.concat(datasetPaths[t], idName, img))
+		            local h = original:size(2)
+		            local w = original:size(3)
+		            local m = math.min(h, w)
+		            local y = math.floor((h - m) / 2)
+		            local x = math.floor((w - m) / 2)
+		            dataset[t].data[count] = image.scale(
+		--               original[{ {}, {y + 1, y + m}, {x + 1, x + m} }],
+				original,
+		               imageSide, imageSide
+		            )
+		            dataset[t].label[count] = id
+		         end
+		         dataset[t].index[id][2] = count
+		         collectgarbage()
+		      end
+		   end
+		 end
+	   end
 
-      datasetPaths[t] = datasetPaths.base .. '/' .. t .. '/'
-      local identities = sys.ls(datasetPaths[t]):split('\n')
-      local dataSize = tonumber(sys.execute('find ' .. datasetPaths[t] .. ' -iname "*.jpg"| wc -l'))
-      dataSize=math.min(limit_datasize[t], dataSize)
-      dataset[t] = {
-         data = torch.Tensor(dataSize, 3, imageSide, imageSide),
-         label = torch.Tensor(dataSize),
-         index = torch.Tensor(#identities, 2),
-      }
-
-      local count = 0
-      for id, idName in ipairs(identities) do
-         dataset[t].index[id][1] = count + 1
-	 if count<dataSize then
-         for _, img in ipairs(sys.ls(datasetPaths[t] .. idName):split('\n')) do
-            count = count + 1
-	    if count<=dataSize then
---		    print(count)
-	            xlua.progress(count, dataSize)
-	            -- print(count, paths.concat(datasetPaths[t], idName, img))
-	            local original = image.load(paths.concat(datasetPaths[t], idName, img))
-	            local h = original:size(2)
-	            local w = original:size(3)
-	            local m = math.min(h, w)
-	            local y = math.floor((h - m) / 2)
-	            local x = math.floor((w - m) / 2)
-	            dataset[t].data[count] = image.scale(
-	--               original[{ {}, {y + 1, y + m}, {x + 1, x + m} }],
-			original,
-	               imageSide, imageSide
-	            )
-	            dataset[t].label[count] = id
-	         end
-	         dataset[t].index[id][2] = count
-	         collectgarbage()
-	      end
-	 end
-	 end
-   end
-
-   io.write('Saving whole data set to disk...'..save_path); io.flush()
-   torch.save(save_path, dataset)
-   print(' Done.')
+	   io.write('Saving whole data set to disk...'..t7_path); io.flush()
+	   torch.save(save_path, dataset)
+	   print(' Done.')
+	end
 end
-
 
 
 
@@ -203,8 +204,12 @@ local stats=function(t)
 	print('###num of different words '..t..' '..num_of_words)
 end
 
+
+
+
 -- Public functions ------------------------------------------------------------
 return {
+   load	          =my_load,
    select         = shuffleShuffle,
    getNbOfBatches = my_getNbOfBatches,
 --   initEmbeddings = initEmbeddings,
