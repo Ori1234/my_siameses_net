@@ -137,19 +137,31 @@ local my_getBatch = function(nb, t )
       
       local dataSize=dataset[t].data:size(1)
       local from=dataset[t].index[label][1]
-      local to= math.min(dataset[t].index[label][2],dataSize) 
+--      local to= math.min(dataset[t].index[label][2],dataSize) 
+      local to= dataset[t].index[label][2] 
       local index
       if same then
-	 index=math.random(from,to)
-	 if to==from then --single word
+  	 if to==from then --single word  --choose another word that is not single
+         	while from==to do
+                       --print('from==to')
+                       loc = math.random(dataSize) -- choose another word randomly from whole dataset
+                       local label = dataset[t].label[loc]
+                       from=dataset[t].index[label][1]
+            --           to= math.min(dataset[t].index[label][2],dataSize)
+      		       to= dataset[t].index[label][2] 
+	        end
+                inputs[i][1]  = dataset[t].data [loc]
+	--         print('\n')
 	 --print('to==from') 
-	 else --try to choose another pic
-		 c=0
-		 while c<batchSize and index==loc do
-			 index=math.random(from,to)
-			 c=c+1
-		 end	 
 	 end
+	 index=math.random(from,to)
+	 --else --try to choose another pic
+		 --c=0
+--		 while  index==loc and  c<batchSize do
+	 while  index==loc do
+		 index=math.random(from,to)
+		 --c=c+1
+	 end	 
       else
          index=math.random(dataSize)
 	 local class=dataset[t].label[index]

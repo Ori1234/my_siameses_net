@@ -1,111 +1,74 @@
---th test_real_multi.lua 200 'OUTPUTS/snapshot_train_real/snapshot_epoch_5.net' '../../DATA/real_data_RGB/test/'
+--th test_real_multi_data_getBatch.lua 100 'OUTPUTS/snapshot_train_real/snapshot_epoch_40.net' 'big_dataset.t7'
 require 'nn'
 require 'cunn'
--- th -i test_real_multi.lua <num_of_tests><saved model><data folder>
---th -i test_real_multi.lua 1000 OUTPUTS/snapshot_train_real/snapshot_epoch_5.net ../../DATA/real_data_RGB/
 math.randomseed(os.time())
 
 require '../../help_funcs.lua'
---local num_of_test=arg[1] or 100 
---saved_model=arg[2] or 'OUTPUTS/snapshot_train_real/snapshot_epoch_5.net'
---local data_folder=arg[3] or '../../DATA/real_data_RGB/'
-
---F_test=preper_data_word_spoting(data_folder)
---print('word_spoting_folders test')
---folders_test=set_word_spoting_folders(F_test)
-
---print('prepered')
-function test()
-local folder1
-local folder2
-
-
-
-data=require 'data1'
-data.select('test')
---batchDim = 100 
-batchDim=tonumber(arg[1])
-print('batch size is ...'..batchDim)
-testBatches = data.getNbOfBatches(batchDim).test
-print('testBatches: ', testBatches)
-
-
-
-
---do return end
-
---num_of_test=50
-inputs={}
-labels={}
---orig_inputs={}
-print(type(tonumber(num_of_test)))
-orig_inputs,labels=data.getBatch(1,'test')
---orig_inputs=orig_inputs:cuda()
-labels=labels:int()
---for i = 1, num_of_test do
---	local same=(math.random(1, 10) > 5)
---	local folder1,folder2=rand_staff_word_spoting(same,F_test,folders_test)
---	    
-  --      local input=pair_word_spoting(folder1,folder2)
-
-
-	--print(input:type())
---	label = same and 1 or -1
---	table.insert(inputs, image.toDisplayTensor(input))
-	--table.insert(orig_inputs,input:cuda())
---	orig_inputs[i]=input:cuda()
---	table.insert(labels, label)
---end
---input1=orig_inputs:totable()
---input1=torch.totable(orig_inputs)
-s={}
-for i=1,math.min(50,batchDim) do
-	table.insert(s,image.toDisplayTensor(orig_inputs[i]))
-end
-print(slice)
-images1=image.toDisplayTensor{input = s, padding=10,nrow=5}
-
-labels1=slice(labels:totable(),1,50,1)
-labels2=torch.IntTensor(labels1):resize(10,5)
-print(labels2)
-print(images1:size())
-print(images1:type())
-
-image.save('OUTPUTS/data_example1.png',images1)
-
---do return end
---local model=torch.load(saved_model)
+data=require 'data'
 require '../../model'
 require 'cudnn'
 require 'cunn';
 local libs={}
-        libs['SpatialConvolution'] = cudnn.SpatialConvolution
-        libs['SpatialMaxPooling'] = cudnn.SpatialMaxPooling
-        libs['ReLU'] = cudnn.ReLU
-  model = build_model(libs)
+        
+libs['SpatialConvolution'] = cudnn.SpatialConvolution        
+libs['SpatialMaxPooling'] = cudnn.SpatialMaxPooling
+libs['ReLU'] = cudnn.ReLU
 
---local model=model:cuda()
-local dists=model:forward(orig_inputs)
-dists=torch.exp(-dists)
---do return end
+require 'gnuplot'
+
 metrics = require 'metrics'
 
 
-local roc_points, thresholds = metrics.roc.points(dists:double(), labels)
-local area = metrics.roc.area(roc_points)
+function test()
+	local dataset=arg[3] or 'big_dataset.t7'
+	data.load(nil,dataset)--TODO
+	data.select('test')
+	batchDim=tonumber(arg[1]) or 50
+	print('testing '..batchDim..' pairs of images...')
+	testBatches = data.getNbOfBatches(batchDim).test
 
-print('area under curve:'..area)
---print('num of tests '..num_of_test)
+	orig_inputs,labels=data.getBatch(1,'test')
+	orig_inputs=orig_inputs:cuda()
+	labels=labels:int()
+	s={}
+	for i=1,math.min(50,batchDim) do
+		table.insert(s,image.toDisplayTensor(orig_inputs[i]))
+	end
+	images1=image.toDisplayTensor{input = s, padding=10,nrow=5}
 
-require 'gnuplot'
-gnuplot.plot(roc_points)
+	labels1=slice(labels:totable(),1,50,1)
+	labels2=torch.IntTensor(labels1):resize(10,5)
+	print(labels2)
+	local output_im1='OUTPUTS/data_example1.png'
+	image.save(output_im1,images1)
+	saved_model=arg[2]
+	local model
+	if saved_model then
+		print('loading saved model...')
+		model=torch.load(saved_model)
+	else
+		model = build_model(libs)
+	end
+	local model=model:cuda()
+	dists=model:forward(orig_inputs)
+	dists=torch.exp(-dists)
+	
+	local roc_points, thresholds = metrics.roc.points(dists:double(), labels)
+	local area = metrics.roc.area(roc_points)
+
+
+	--gnuplot.plot(roc_points)
 
 
 
-results1=torch.totable(dists)
-results1=slice(results1,1,50,1)
-results2=torch.DoubleTensor(results1):resize(10,5)
-print(results2)
+	results1=torch.totable(dists)
+	results1=slice(results1,1,50,1)
+	results2=torch.DoubleTensor(results1):resize(10,5)
+	print(results2)
+	print('\n')
+	print('area under curve:'..area)
+	print('\n')
+	print('see images by: open1 '..output_im1)
 end
 
 test()
