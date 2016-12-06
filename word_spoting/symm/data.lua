@@ -165,11 +165,12 @@ local my_getBatch = function(nb, t )
       else
          index=math.random(dataSize)
 	 local class=dataset[t].label[index]
-	 local c=0
-	 while c<batchSize and class==label do
+--	 local c=0
+--	 while c<batchSize and class==label do
+	 while class==label do
 		index=math.random(dataSize)
 		class=dataset[t].label[index]
-		c=c+1
+--		c=c+1
 	 end
       end
       inputs[i][2]  = dataset[t].data[index]
