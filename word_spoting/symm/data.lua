@@ -80,6 +80,70 @@ local my_load=function(data_path,t7_path)
 	end
 end
 
+local my_normalize1 = function()
+--see https://github.com/torch/tutorials/blob/master/2_supervised/1_data.lua
+
+end
+
+local my_normalize = function(t,kind,mean_,std_)
+	print('normalizing data. kind: '..kind..' t:'..t..' following mean and std if given')
+	print(mean_)
+	print(std_)
+	if kind=='global' and t=='test' then
+		if not mean_ or not std_ then
+			error('##for global normalization on test need to supply mean and std from train data')
+		end
+	end
+	if kind=='perImage' then
+		size=dataset[t].data:size(1)
+		local mean = dataset[t].data:view(size, -1):mean(2)
+		local std = dataset[t].data:view(size, -1):std(2, true)	 
+		for i=1,size do        
+--			print(i)
+			dataset[t].data[i]:add(-mean[i][1])         
+			if std[i][1] > 0 then            
+			--	tensor:select(2, i):mul(1/std[1][i])         --WHAT IS THIS?
+				dataset[t].data[i]:mul(1/std[i][1])
+			end       
+		end 
+		return mean, std
+	elseif kind=='global' then
+	      local std = std_ or dataset[t].data:std()
+	      local mean = mean_ or dataset[t].data:mean()
+	      dataset[t].data:add(-mean)
+	      dataset[t].data:mul(1/std)
+	      return mean, std
+	else 
+		print('unsoported regularization '..kind)
+	end
+	--[[
+
+---see mnist in TUTORIALS in /home/wolf1/oriterne/
+   function dataset:normalize(mean_, std_)
+      local mean = mean_ or data:view(data:size(1), -1):mean(1)
+      local std = std_ or data:view(data:size(1), -1):std(1, true)
+      for i=1,data:size(1) do
+         data[i]:add(-mean[1][i])
+         if std[1][i] > 0 then
+            tensor:select(2, i):mul(1/std[1][i])
+         end 
+      end 
+      return mean, std 
+   end 
+
+   function dataset:normalizeGlobal(mean_, std_)
+      local std = std_ or data:std()
+      local mean = mean_ or data:mean()
+      data:add(-mean)
+      data:mul(1/std)
+      return mean, std 
+   end 
+
+
+
+--]]
+
+end
 
 
 -- Private functions -----------------------------------------------------------
@@ -230,5 +294,6 @@ return {
    toCuda         = my_toCuda,
    stats          = stats,
 --   saveEmb        = saveEmb,
+   normalize      = my_normalize,
 }
 
