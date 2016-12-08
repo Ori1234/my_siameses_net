@@ -25,7 +25,7 @@ function count_data(tbl)
 	local sum=0
 	for k,v in pairs(tbl) do
 		if #v>0 then
-			print('letter:'..k,'count:'..#v)
+	--		print('letter:'..k,'count:'..#v)
 			sum=sum+#v
 		end
 	end
@@ -86,7 +86,7 @@ end
 function preper_data_word_spoting(data_main_folder)
 	F1={}
 	for f in io.popen("ls "..data_main_folder):lines() do
-	--	print(f)
+		io.write('.')
 		F1[f]={}
 		for pic in io.popen("ls  "..data_main_folder..f..'/'.."*.jpg"):lines() do
 				--print(pic)
@@ -205,7 +205,7 @@ function rand_staff_word_spoting(same,F1,word_spoting_folders)
 		--	print('loop')
 	        end
 	end
-	return F1[s1],F1[s2]
+	return F1[s1],F1[s2],s1,s2
 end
 
 
@@ -238,16 +238,16 @@ function rand_staff_multi(same,F1)
 	return l,F1[s1],F1[s2]
 end
 
-function pair_word_spoting(folder1,folder2)
-
+require 'edit_distance.lua'
+function pair_word_spoting(folder1,folder2,s1,s2)
+	local dist=string.levenshtein_4_files(s1,s2)
 
         im_path1=folder1[math.random(#folder1)]
 
         im_path2=folder2[math.random(#folder2)]
-
-        while im_path1==im_path2 do
-                im_path2=folder2[math.random(#folder2)]
-		
+	
+        while im_path1==im_path2 do--only happen if same folder
+                im_path2=folder2[math.random(#folder2)]		
         end
 	local bool1,im1=pcall(image.load,im_path1)
         local bool2,im2=pcall(image.load,im_path2)
@@ -269,13 +269,13 @@ function pair_word_spoting(folder1,folder2)
 	im1=image.scale(im1, width, height)--'bilinear' 4 atg default is
 	im2=image.scale(im2, width, height)--'bilinear' 4 atg default is
 	local input=torch.Tensor(2,im1:size(1),im1:size(2),im1:size(3))
-	input[1]=im1
+	input[1]=im1 --TODO normalize each image seperatly in order to not chnage from last run
         input[2]=im2
 	mean=input:mean()
         std=input:std()
         input:add(-mean)
         input:mul(1.0/std)
-	return input
+	return input,dist
 end
 
 

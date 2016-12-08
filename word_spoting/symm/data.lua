@@ -8,12 +8,121 @@ limit_datasize={train=100,test=50}
 require 'image'
 require 'sys'
 require 'xlua'
+require '../../help_funcs.lua'
 
 torch.setdefaulttensortype('torch.FloatTensor')
 
-dataset = {}
+dataset = {}--make local
 local imageSide =64 
 
+my_load_pair=function(data_path,t7_path)
+        t7_path=t7_path or 'big_dataset123.t7'
+        if paths.filep(t7_path) then
+                io.write('my_load_pairs: Loading whole data set. Please wait...'..t7_path); io.flush()
+                dataset = torch.load(t7_path)
+                print(' Done.')
+        else
+        local datasetPaths = {}
+        datasetPaths.base = data_path or  '../../../../DATA/BAVLI/some'
+        print('###getting data from '..datasetPaths.base)
+	
+	for _, t in ipairs {'train', 'test'} do
+       		print('Building ' .. t .. 'ing data set')
+
+
+--		f1,f2,s1,s2=rand_staff_word_spoting(false,paths1,word_spoting_folders)
+--		i,l=pair_word_spoting(f1,f2,s1,s2)
+
+	
+	     	datasetPaths[t] = datasetPaths.base .. '/' .. t .. '/'
+		
+		--local paths1
+		local pre_saved_path=t..'_saved_ls_tree_table.t7'
+		if paths.filep(pre_saved_path) then
+			paths1=torch.load(pre_saved_path)  
+		else
+			print('prepering from '..datasetPaths[t])
+			paths1=preper_data_word_spoting(datasetPaths[t])
+			torch.save(pre_saved_path,paths1)
+		end
+
+		word_spoting_folders=set_word_spoting_folders(paths1)
+	      	
+
+
+--		local identities = sys.ls(datasetPaths[t]):split('\n')
+	      	local dataSize = tonumber(sys.execute('find ' .. datasetPaths[t] .. ' -iname "*.jpg"| wc -l'))
+	      	dataSize=math.min(limit_datasize[t], dataSize)
+	      	dataset[t] = {
+        	 	data = torch.Tensor(dataSize,2, 3, imageSide, imageSide),
+        	 	label = torch.Tensor(dataSize),
+--	         	index = torch.Tensor(#identities, 2),
+      		}
+
+	      	local count = 0
+	      	for id, idName in ipairs(word_spoting_folders) do
+		        --dataset[t].index[id][1] = count + 1
+			if count<dataSize then --needed because no break statement in lua
+		      	   for _, img in ipairs(paths1[idName]) do
+									--      
+
+		         	 count = count + 1
+				 if count<=dataSize then
+		--		    print(count)
+					--1)draw same/not same
+			            --local original = image.load(paths.concat(datasetPaths[t], idName, img))
+			            local original = image.load(img)
+				    local im1=image.scale(original,imageSide,imageSide)
+				    local same=math.random(1000)>500
+					--1.1) if same
+					--	draw another file from THIS identity (HOW?)
+					if same then
+					--	while image in folders==1 then
+					--		choose another
+				--		end
+					idName2=idName
+					else
+					idName2=word_spoting_folders[math.random(#word_spoting_folders)]
+					end
+					im2_folder=paths1[idName2]
+					print(#im2_folder)
+					print(idName)
+					im2_path=im2_folder[math.random(#im2_folder)]
+					--TODO if same image!!
+					print(im2_path)
+					original2= image.load(im2_path)
+					
+				    local im2=image.scale(original2,imageSide,imageSide)
+						--1.2) if not same
+			            xlua.progress(count, dataSize)
+			            -- print(count, paths.concat(datasetPaths[t], idName, img))
+--			            local h = original:size(2)
+--			            local w = original:size(3)
+--			            local m = math.min(h, w)
+--			            local y = math.floor((h - m) / 2)
+--			            local x = math.floor((w - m) / 2)
+
+			            dataset[t].data[count][1] = im1
+			            dataset[t].data[count][2] = im2
+				
+			            dataset[t].label[count] = string.levenshtein_4_files(idName,idName2)-- this is OK since go to folder all1 and not test/train - which I areased TATIK from... 
+			         end
+	--	         dataset[t].index[id][2] = count
+		         collectgarbage()
+		      end
+		   end
+		 end
+	   end
+
+	   io.write('Saving whole data set to disk...'..t7_path); io.flush()
+	   torch.save(t7_path, dataset)
+	   print(' Done.')
+	end
+	
+
+
+
+end
 	
 local my_load=function(data_path,t7_path)
 	-- Loading the dataset to RAM --------------------------------------------------
@@ -29,25 +138,25 @@ local my_load=function(data_path,t7_path)
 	   -- Format:
 	   -- datasetRoot/{train,test}/<celebrityName>
 	local datasetPaths = {}
-	datasetPaths.base = data_path or  '../../../../DATA/BAVLI/some'
+	datasetPaths.base = data_path or  '../../../../DATA/BAVLI'
 	print('###getting data from '..datasetPaths.base)
 	for _, t in ipairs {'train', 'test'} do
-        	print('Building ' .. t .. 'ing data set')
+       		print('Building ' .. t .. 'ing data set')
 
-	      datasetPaths[t] = datasetPaths.base .. '/' .. t .. '/'
-	      local identities = sys.ls(datasetPaths[t]):split('\n')
-	      local dataSize = tonumber(sys.execute('find ' .. datasetPaths[t] .. ' -iname "*.jpg"| wc -l'))
-	      dataSize=math.min(limit_datasize[t], dataSize)
-	      dataset[t] = {
-        	 data = torch.Tensor(dataSize, 3, imageSide, imageSide),
-        	 label = torch.Tensor(dataSize),
-	         index = torch.Tensor(#identities, 2),
+	     	datasetPaths[t] = datasetPaths.base .. '/' .. t .. '/'
+	      	local identities = sys.ls(datasetPaths[t]):split('\n')
+	      	local dataSize = tonumber(sys.execute('find ' .. datasetPaths[t] .. ' -iname "*.jpg"| wc -l'))
+	      	dataSize=math.min(limit_datasize[t], dataSize)
+	      	dataset[t] = {
+        	 	data = torch.Tensor(dataSize, 3, imageSide, imageSide),
+        	 	label = torch.Tensor(dataSize),
+	         	index = torch.Tensor(#identities, 2),
       		}
 
-	      local count = 0
-	      for id, idName in ipairs(identities) do
-	         dataset[t].index[id][1] = count + 1
-		 if count<dataSize then
+	      	local count = 0
+	      	for id, idName in ipairs(identities) do
+	        dataset[t].index[id][1] = count + 1
+		if count<dataSize then
 	      	   for _, img in ipairs(sys.ls(datasetPaths[t] .. idName):split('\n')) do
 	         	   count = count + 1
 			    if count<=dataSize then
@@ -280,6 +389,95 @@ local stats=function(t)
 	print('###total num of pics '..t..' '..sum)
 	print('###num of different words '..t..' '..num_of_words)
 end
+
+function load_pairs_data(t,class_subset)--not usefull. most pairs are negative
+  --local file = torch.load(filename, 'ascii')
+  my_load(nil,nil) --args?
+  
+  local indices_in_subset = {}
+
+  local all_data = dataset[t].data:type(torch.getdefaulttensortype())
+  local all_labels = dataset[t].label
+  
+  for i = 1, all_labels:size()[1] do
+    if #class_subset == 0 or class_subset[all_labels[i]] ~= nil then
+      table.insert(indices_in_subset, i)
+    end 
+  end 
+  
+  local data = torch.Tensor(#indices_in_subset, all_data:size()[2], all_data:size()[3], all_data:size()[4])
+  local labels = torch.Tensor(#indices_in_subset)
+
+  for i = 1,#indices_in_subset do
+    data[i] = all_data[indices_in_subset[i]]
+    labels[i] = all_labels[indices_in_subset[i]]
+  end 
+
+  local std = data:std()
+  local mean = data:mean()
+  data:add(-mean);
+  data:mul(1.0/std);
+    
+  --torch.setdefaulttensortype('torch.FloatTensor')
+
+  shuffle = torch.randperm(data:size(1))
+--  torch.setdefaulttensortype('torch.CudaTensor')
+--  shuffle=shuffle:cuda()
+
+  max_index = data:size(1)
+  if max_index % 2 ~= 0 then
+    max_index = max_index - 1 
+  end 
+
+
+  -- now we make the pairs (tensor of size (30000,2,1,32,32) for training data)
+  paired_data = torch.Tensor(max_index/2, 2, data:size(2), data:size(3), data:size(4))
+  paired_data_labels = torch.Tensor(max_index/2)
+  index = 1
+
+  for i = 1,max_index,2 do
+    paired_data[index][1] = data[shuffle[i]]:clone()
+    paired_data[index][2] = data[shuffle[i + 1]]:clone()
+    if labels[shuffle[i]] == labels[shuffle[i+1]] then
+      paired_data_labels[index] = 1
+    else
+      paired_data_labels[index] = -1
+    end
+    index = index + 1
+  end
+
+  local dataset = {}
+  dataset.data = paired_data
+  dataset.labels = paired_data_labels
+  dataset.std = std
+  dataset.mean = mean
+
+  function dataset:size()
+    return dataset.data:size(1)
+  end
+
+  local class_count = 0
+  local classes = {}
+  for i=1, dataset.labels:size(1) do
+    if classes[dataset.labels[i]] == nil then
+      class_count = class_count + 1
+      table.insert(classes, dataset.labels[i])
+    end
+  end
+
+  dataset.class_count = class_count
+
+  --The dataset has to be indexable by the [] operator so this next bit handles that
+  setmetatable(dataset, {__index = function(self, index)
+                        local input = self.data[index]
+                        local label = self.labels[index]
+                        local example = {input, label}
+                        return example
+                        end })
+
+  return dataset
+end
+
 
 
 

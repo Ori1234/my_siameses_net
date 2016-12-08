@@ -258,6 +258,10 @@ rocLogger:setNames{'AUC'}
 rocLogger:style{'-'}
 data=require 'data'
 data.load(data_folder,params.t7)
+
+data.normalize('train','perImage')
+data.normalize('test','perImage')
+
 data.select('train')
 data.select('test')
 batchDim=params.batch_size
