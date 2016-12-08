@@ -19,7 +19,7 @@ cmd:argument("-max_epochs", "maximum epochs")
 cmd:argument("-Title", "for results email")
 cmd:text("Options")
 cmd:option("-data_folder", "../../../../DATA/real_data_RGB")
-cmd:option("-t7",'big_dataset.t7')
+cmd:option("-t7",'big_dataset123.t7')
 cmd:option("-batch_size", 200, "batch size")
 cmd:option("-learning_rate", 0.01, "initial learning_rate")
 cmd:option("-momentum", 0.9, "momentum")
@@ -85,7 +85,8 @@ if run_on_cuda then
 	model = model:cuda()
 	criterion=criterion:cuda()
 end
-
+print(model)
+print(criterion)
 
 -----------------------------------------------------------------------------
 --------------------- Training Function -------------------------------------
@@ -144,15 +145,6 @@ function test_one_epoch(epochNb)
 		local inputs, labels = data.getBatch(batchNb,'test')
 		inputs=inputs:cuda()
 		labels=labels:cuda()
-	--	for i= 1,test_size do --for each mini-batch
-	--		local same=(math.random(1, 10) > 5)
-	--		local folder1,folder2=rand_staff_word_spoting(same,F_test,folders_test)
-	--		local input=pair_word_spoting(folder1,folder2)
-	--		input=input:cuda()
-	--		local label = same and 1 or -1
-	--		inputs[i]=input	
-	--		labels[i]=label
-	--	end
 		local dists = model:forward(inputs)
 --		print(dists:size())
 		--print('\n')	
@@ -169,11 +161,14 @@ function test_one_epoch(epochNb)
                 xlua.progress(batchNb,testBatches)--display progress
 	end
 	print('epoch '..epochNb..' test loss: '..errors/testBatches)	
-	local roc_points, thresholds = metrics.roc.points(dists_append, labels_append)
+	local edit_dist=true
+	if edit_dist then
+		local roc_labels=labels_append:lt(1)  --edit dist=0 then same then 1; edit dist > 0 then not same then 0
+		roc_points, thresholds = metrics.roc.points(dists_append, roc_labels,0,1)   --for edit distance test!!!
+	else
+		roc_points, thresholds = metrics.roc.points(dists_append, labels_append)
+	end
 	local area = metrics.roc.area(roc_points)
-
---	testLogger:add{['test loss'] =errors/testBatches}
---	rocLogger:add{['AUC'] = area}
 
 	print('area under curve:'..area)
 	return errors/testBatches,area

@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 -- Alfredo Canziani, Apr 15
 --------------------------------------------------------------------------------
-limit_datasize={train=100,test=50}
+limit_datasize={train=100000000000,test=5000000000}
 
 require 'image'
 require 'sys'
@@ -16,27 +16,23 @@ dataset = {}--make local
 local imageSide =64 
 
 my_load_pair=function(data_path,t7_path)
-        t7_path=t7_path or 'big_dataset123.t7'
-        if paths.filep(t7_path) then
-                io.write('my_load_pairs: Loading whole data set. Please wait...'..t7_path); io.flush()
-                dataset = torch.load(t7_path)
-                print(' Done.')
-        else
+    t7_path=t7_path or 'big_dataset123.t7'
+    --try load pre saved data
+    if paths.filep(t7_path) then
+        io.write('my_load_pairs: Loading whole data set. Please wait...'..t7_path); io.flush()
+        dataset = torch.load(t7_path)
+        print(' Done.')
+    else	
+	--need to generate data from image folder
         local datasetPaths = {}
-        datasetPaths.base = data_path or  '../../../../DATA/BAVLI/some'
+        datasetPaths.base = data_path or  '../../../../DATA/BAVLI'
         print('###getting data from '..datasetPaths.base)
 	
 	for _, t in ipairs {'train', 'test'} do
        		print('Building ' .. t .. 'ing data set')
-
-
---		f1,f2,s1,s2=rand_staff_word_spoting(false,paths1,word_spoting_folders)
---		i,l=pair_word_spoting(f1,f2,s1,s2)
-
-	
 	     	datasetPaths[t] = datasetPaths.base .. '/' .. t .. '/'
-		
-		--local paths1
+		--preperations
+		local paths1
 		local pre_saved_path=t..'_saved_ls_tree_table.t7'
 		if paths.filep(pre_saved_path) then
 			paths1=torch.load(pre_saved_path)  
@@ -45,88 +41,61 @@ my_load_pair=function(data_path,t7_path)
 			paths1=preper_data_word_spoting(datasetPaths[t])
 			torch.save(pre_saved_path,paths1)
 		end
-
 		word_spoting_folders=set_word_spoting_folders(paths1)
 	      	
-
-
---		local identities = sys.ls(datasetPaths[t]):split('\n')
-	      	local dataSize = tonumber(sys.execute('find ' .. datasetPaths[t] .. ' -iname "*.jpg"| wc -l'))
+	 	--start	
+		local dataSize = tonumber(sys.execute('find ' .. datasetPaths[t] .. ' -iname "*.jpg"| wc -l'))
 	      	dataSize=math.min(limit_datasize[t], dataSize)
 	      	dataset[t] = {
         	 	data = torch.Tensor(dataSize,2, 3, imageSide, imageSide),
         	 	label = torch.Tensor(dataSize),
---	         	index = torch.Tensor(#identities, 2),
       		}
 
 	      	local count = 0
 	      	for id, idName in ipairs(word_spoting_folders) do
-		        --dataset[t].index[id][1] = count + 1
 			if count<dataSize then --needed because no break statement in lua
 		      	   for _, img in ipairs(paths1[idName]) do
-									--      
-
 		         	 count = count + 1
 				 if count<=dataSize then
-		--		    print(count)
-					--1)draw same/not same
-			            --local original = image.load(paths.concat(datasetPaths[t], idName, img))
 			            local original = image.load(img)
 				    local im1=image.scale(original,imageSide,imageSide)
 				    local same=math.random(1000)>500
-					--1.1) if same
-					--	draw another file from THIS identity (HOW?)
-					if same then
-						while #paths1[idName]  <2 do
-							idName=word_spoting_folders[math.random(#word_spoting_folders)]
-							print(idName)
-							print(#paths1[idName])
-						end
-					print('\n')
+				    if same then
+					while #paths1[idName]  <2 do
+						idName=word_spoting_folders[math.random(#word_spoting_folders)]
+					end
 					idName2=idName
-					else
+		   		    else
+					idName2=word_spoting_folders[math.random(#word_spoting_folders)]
+					while idName2==idName do
 						idName2=word_spoting_folders[math.random(#word_spoting_folders)]
-						while idName2==idName do
-							idName2=word_spoting_folders[math.random(#word_spoting_folders)]
-						end
 					end
-					im2_folder=paths1[idName2]
-					--print(#im2_folder)
-					--print(idName)
+				    end
+		   		    im2_folder=paths1[idName2]
+				    im2_path=im2_folder[math.random(#im2_folder)]
+				    while im2_path==img do
 					im2_path=im2_folder[math.random(#im2_folder)]
-					while im2_path==img do
-						im2_path=im2_folder[math.random(#im2_folder)]
-						print('same imag')
-					end
-					print('\n')
-					--print(im2_path)
-					original2= image.load(im2_path)
+				    end
+				    original2= image.load(im2_path)
 					
 				    local im2=image.scale(original2,imageSide,imageSide)
-						--1.2) if not same
 			            xlua.progress(count, dataSize)
 
 			            dataset[t].data[count][1] = im1
 			            dataset[t].data[count][2] = im2
 				
 			            dataset[t].label[count] = string.levenshtein_4_files(idName,idName2)-- this is OK since go to folder all1 and not test/train - which I areased TATIK from... 
---				    print('dist '..dataset[t].label[count])
 			         end
-	--	         dataset[t].index[id][2] = count
-		         collectgarbage()
-		      end
-		   end
-		 end
-	   end
-
-	   io.write('Saving whole data set to disk...'..t7_path); io.flush()
---	   torch.save(t7_path, dataset)
-	   print(' Done.')
+		         	 collectgarbage()
+		      	   end
+		   	end
+		end
 	end
-	
 
-
-
+	io.write('Saving whole data set to disk...'..t7_path); io.flush()
+	torch.save(t7_path, dataset)
+	print(' Done.')
+     end
 end
 	
 local my_load=function(data_path,t7_path)
@@ -356,6 +325,30 @@ local my_getBatch = function(nb, t )
    return inputs, sames
 end
 
+local my_getBatch_pairs = function(nb, t )
+
+   -- Main varialbles
+   local inputs = torch.Tensor(batchSize,2, 3, imageSide, imageSide)
+   local edit_dists = torch.Tensor(batchSize)
+
+   -- Auxiliary variable
+   local label 
+   local offset = batchSize * (nb - 1)
+   for i = 1, batchSize do
+        local loc = shuffle[i + offset] -- original location in data set
+  	tmp= dataset[t].data [loc]	
+--	print(tmp:size())
+--	print(inputs[i]:size())
+ 	inputs[i]  = dataset[t].data [loc]	
+        edit_dists[i]= dataset[t].label[loc]
+    --  local same=math.random(1000)>500
+    --  sames[i]=same and 1 or -1
+      
+   end
+   
+      return inputs,edit_dists 
+end
+
 -- Moves the batch to the GPU's RAM
 local my_toCuda = function(batch)
    require 'cutorch'
@@ -489,11 +482,11 @@ end
 
 -- Public functions ------------------------------------------------------------
 return {
-   load	          =my_load,
+   load	          = my_load_pair,
    select         = shuffleShuffle,
    getNbOfBatches = my_getNbOfBatches,
 --   initEmbeddings = initEmbeddings,
-   getBatch       = my_getBatch,
+   getBatch       = my_getBatch_pairs,
    toCuda         = my_toCuda,
    stats          = stats,
 --   saveEmb        = saveEmb,

@@ -20,7 +20,7 @@ metrics = require 'metrics'
 
 
 function test()
-	local dataset=arg[3] or 'big_dataset.t7'
+	local dataset=arg[3] or 'big_dataset123.t7'
 	data.load(nil,dataset)--TODO
 	data.select('test')
 	batchDim=tonumber(arg[1]) or 50
@@ -52,8 +52,14 @@ function test()
 	local model=model:cuda()
 	dists=model:forward(orig_inputs)
 	dists=torch.exp(-dists)
+        local edit_dist=true
+        if edit_dist then
+                local roc_labels=labels:lt(1)  --edit dist=0 then same then 1; edit dist > 0 then not same then 0
+                roc_points, thresholds = metrics.roc.points(dists:double(), roc_labels,0,1)   --for edit distance test!!!
+        else
 	
-	local roc_points, thresholds = metrics.roc.points(dists:double(), labels)
+		local roc_points, thresholds = metrics.roc.points(dists:double(), labels)
+	end
 	local area = metrics.roc.area(roc_points)
 
 

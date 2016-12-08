@@ -49,6 +49,10 @@ function build_model(libs)
 
     margin = 1
     criterion = nn.HingeEmbeddingCriterion(margin)
+    local edit_dist=true
+    if edit_dist then
+	criterion = nn.MSECriterion()
+    end
     return model
 end
 

@@ -69,14 +69,16 @@ for f in io.popen("ls "..data_path):lines() do
 end
 local identities = sys.ls(data_path):split('\n')
 
-
-a=identities[math.random(#identities)]
-b=identities[math.random(#identities)]
-
+function string.levenshein_test(a,b)
+	a=a or identities[math.random(#identities)]
+	b=b or identities[math.random(#identities)]
+	print('cat '..data_path..a..'/TAATIK.txt ')
+	print('cat '..data_path..b..'/TAATIK.txt \n')
+	a=read_file(data_path..a..'/TAATIK.txt')
+	b=read_file(data_path..b..'/TAATIK.txt')
+	return string.levenshtein(a,b)
+end
 function string.levenshtein_4_files(a,b)
-	--print('cat '..data_path..a..'/TAATIK.txt ')
-	--print('cat '..data_path..b..'/TAATIK.txt \n')
-
 	a=read_file(data_path..a..'/TAATIK.txt')
 	b=read_file(data_path..b..'/TAATIK.txt')
 	return string.levenshtein(a,b)
@@ -87,9 +89,9 @@ function string.levenshtein_4_folders_names(a,b)--where folders names where gene
 	print('not implemented yet')
 end
 
-a=read_file('file1')
-b=read_file('file2')
-print(a)
-print(b)
-print(string.levenshtein(a,b))
+--a=read_file('file1')
+--b=read_file('file2')
+--print(a)
+--print(b)
+--print(string.levenshtein(a,b))
 
