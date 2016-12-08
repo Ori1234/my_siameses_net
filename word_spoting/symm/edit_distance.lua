@@ -74,8 +74,8 @@ a=identities[math.random(#identities)]
 b=identities[math.random(#identities)]
 
 function string.levenshtein_4_files(a,b)
-	print('cat '..data_path..a..'/TAATIK.txt ')
-	print('cat '..data_path..b..'/TAATIK.txt \n')
+	--print('cat '..data_path..a..'/TAATIK.txt ')
+	--print('cat '..data_path..b..'/TAATIK.txt \n')
 
 	a=read_file(data_path..a..'/TAATIK.txt')
 	b=read_file(data_path..b..'/TAATIK.txt')

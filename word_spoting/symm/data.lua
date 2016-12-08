@@ -77,35 +77,40 @@ my_load_pair=function(data_path,t7_path)
 					--1.1) if same
 					--	draw another file from THIS identity (HOW?)
 					if same then
-					--	while image in folders==1 then
-					--		choose another
-				--		end
+						while #paths1[idName]  <2 do
+							idName=word_spoting_folders[math.random(#word_spoting_folders)]
+							print(idName)
+							print(#paths1[idName])
+						end
+					print('\n')
 					idName2=idName
 					else
-					idName2=word_spoting_folders[math.random(#word_spoting_folders)]
+						idName2=word_spoting_folders[math.random(#word_spoting_folders)]
+						while idName2==idName do
+							idName2=word_spoting_folders[math.random(#word_spoting_folders)]
+						end
 					end
 					im2_folder=paths1[idName2]
-					print(#im2_folder)
-					print(idName)
+					--print(#im2_folder)
+					--print(idName)
 					im2_path=im2_folder[math.random(#im2_folder)]
-					--TODO if same image!!
-					print(im2_path)
+					while im2_path==img do
+						im2_path=im2_folder[math.random(#im2_folder)]
+						print('same imag')
+					end
+					print('\n')
+					--print(im2_path)
 					original2= image.load(im2_path)
 					
 				    local im2=image.scale(original2,imageSide,imageSide)
 						--1.2) if not same
 			            xlua.progress(count, dataSize)
-			            -- print(count, paths.concat(datasetPaths[t], idName, img))
---			            local h = original:size(2)
---			            local w = original:size(3)
---			            local m = math.min(h, w)
---			            local y = math.floor((h - m) / 2)
---			            local x = math.floor((w - m) / 2)
 
 			            dataset[t].data[count][1] = im1
 			            dataset[t].data[count][2] = im2
 				
 			            dataset[t].label[count] = string.levenshtein_4_files(idName,idName2)-- this is OK since go to folder all1 and not test/train - which I areased TATIK from... 
+--				    print('dist '..dataset[t].label[count])
 			         end
 	--	         dataset[t].index[id][2] = count
 		         collectgarbage()
@@ -115,7 +120,7 @@ my_load_pair=function(data_path,t7_path)
 	   end
 
 	   io.write('Saving whole data set to disk...'..t7_path); io.flush()
-	   torch.save(t7_path, dataset)
+--	   torch.save(t7_path, dataset)
 	   print(' Done.')
 	end
 	
