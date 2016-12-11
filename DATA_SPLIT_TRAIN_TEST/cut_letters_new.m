@@ -59,3 +59,49 @@ while ischar(line)
 end
 fclose(fid);
 
+
+%{
+this work
+rdsCoordinates_processed1.csv';
+  4 fid=fopen(csv_file);
+  5 line=fgetl(fid); %advance on table headings
+  6 line=fgetl(fid);
+  7 counter=1
+  8 
+  9 
+ 10 
+ 11 while ischar(line)
+ 12         counter=counter+1;
+ 13         try
+ 14         l=strsplit(line,',');
+ 15         image_num=l(1);
+ 16         word_num=l(2);
+ 17         word=l(3);
+ 18         rect=l(10);
+ 19         a=num2str(double(word{1}));
+ 20         word=strrep(a,' ','_');
+ 21         real_word=l(3);
+ 22 
+ 23 
+ 24 
+ 25         segmented_txt_path=strcat(output_dir,num2str(counter),'_e');
+ 26 
+ 27 
+ 28         disp(['writing word ', real_word{1},' to ',segmented_txt_path])
+ 29 
+ 30 
+ 31 %       f_txt=fopen(segmented_txt_path,'w','n','windows-1255');  %I think now this is good with the edit distance
+ 32 %       fprintf(f_txt,'%s\n',real_word{1});
+ 33 %       fclose(f_txt);
+ 34 
+ 35 
+ 36         f_txt1=fopen(strcat(segmented_txt_path,'1'),'w');
+ 37         fprintf(f_txt1,'%s\n',real_word{1});
+ 38         fclose(f_txt1);
+ 39 
+ 40 
+ 41         line=fgetl(fid);
+ 42 end
+ 43 %fclose(fid);
+ 44 end
+  %}           
