@@ -251,7 +251,8 @@ lossLogger:style{'-','-'}
 rocLogger=optim.Logger(paths.concat(params.output_dir, 'roc.log'))
 rocLogger:setNames{'AUC'}
 rocLogger:style{'-'}
-data=require 'data'
+print('data=require "data_pairs"')
+data=require 'data_pairs'
 data.load(data_folder,params.t7)
 
 data.normalize('train','perImage')

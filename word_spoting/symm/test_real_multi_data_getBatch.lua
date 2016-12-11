@@ -50,8 +50,8 @@ function test()
 		model = build_model(libs)
 	end
 	local model=model:cuda()
-	dists=model:forward(orig_inputs)
-	dists=torch.exp(-dists)
+	dists1=model:forward(orig_inputs)
+	dists=torch.exp(-dists1)
         local edit_dist=true
         if edit_dist then
                 local roc_labels=labels:lt(1)  --edit dist=0 then same then 1; edit dist > 0 then not same then 0
@@ -67,7 +67,7 @@ function test()
 
 
 
-	results1=torch.totable(dists)
+	results1=torch.totable(dists1)
 	results1=slice(results1,1,50,1)
 	results2=torch.DoubleTensor(results1):resize(10,5)
 	print(results2)

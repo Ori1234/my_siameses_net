@@ -3,7 +3,7 @@ if nargin < 4
 	margin=5
 end
 if nargin < 3
-	output_dir='all1/';
+	output_dir='all2/';
 end
 if nargin < 2
 	image_dir='images/';
@@ -49,8 +49,8 @@ while ischar(line)
 	imwrite(w,segmented_image_path{1});
 	
 	disp(['writing word ', real_word{1},' to ',segmented_txt_path])
-	f_txt=fopen(segmented_txt_path,'w');	
-	fprintf(f_txt,'%s\n',real_word{1});
+	f_txt=fopen(segmented_txt_path,'w','n','ISO-8859-1');	
+	fprintf(f_txt,'%s',real_word{1});
 	fclose(f_txt);
 	catch
 	    disp('An error occurred while retrieving information from the internet.');

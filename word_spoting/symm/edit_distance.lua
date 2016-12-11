@@ -72,13 +72,20 @@ local identities = sys.ls(data_path):split('\n')
 function string.levenshein_test(a,b)
 	a=a or identities[math.random(#identities)]
 	b=b or identities[math.random(#identities)]
-	print('cat '..data_path..a..'/TAATIK.txt ')
-	print('cat '..data_path..b..'/TAATIK.txt \n')
+	print('clear')
+	print('cat '..data_path..a..'/TAATIK.txt1 ')
+	print('\n')
+	print('cat '..data_path..b..'/TAATIK.txt1')
+	print('\n')
 	a=read_file(data_path..a..'/TAATIK.txt')
 	b=read_file(data_path..b..'/TAATIK.txt')
 	return string.levenshtein(a,b)
 end
 function string.levenshtein_4_files(a,b)
+
+--	print('cat '..data_path..a..'/TAATIK.txt ')
+--	print('cat '..data_path..b..'/TAATIK.txt \n')
+
 	a=read_file(data_path..a..'/TAATIK.txt')
 	b=read_file(data_path..b..'/TAATIK.txt')
 	return string.levenshtein(a,b)
